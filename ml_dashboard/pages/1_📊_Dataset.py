@@ -13,14 +13,25 @@ t = st.session_state.t
 
 st.title(t["nav_dataset"])
 
+import os
+from pathlib import Path
+
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv("../data/raw/synthetic_interactions.csv")
-        return df
-    except Exception as e:
-        st.error(f"Error loading dataset: {e}")
-        return pd.DataFrame()
+    possible_paths = [
+        Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "synthetic_interactions.csv",
+        Path("data/raw/synthetic_interactions.csv"),
+        Path("../data/raw/synthetic_interactions.csv"),
+    ]
+    for p in possible_paths:
+        if os.path.exists(p):
+            try:
+                return pd.read_csv(p)
+            except Exception as e:
+                st.error(f"Error reading CSV at {p}: {e}")
+                return pd.DataFrame()
+    st.error(f"Dataset file not found. Tried paths: {[str(p) for p in possible_paths]}")
+    return pd.DataFrame()
 
 df = load_data()
 
