@@ -16,12 +16,23 @@ t = st.session_state.t
 st.title(t["nav_stats"])
 st.write("Robust statistical tests and distribution analysis (ANOVA, T-Test, Chi-Square).")
 
+import os
+from pathlib import Path
+
 @st.cache_data
 def load_data():
-    try:
-        return pd.read_csv("../data/raw/synthetic_interactions.csv")
-    except Exception:
-        return None
+    possible_paths = [
+        Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "synthetic_interactions.csv",
+        Path("data/raw/synthetic_interactions.csv"),
+        Path("../data/raw/synthetic_interactions.csv"),
+    ]
+    for p in possible_paths:
+        if os.path.exists(p):
+            try:
+                return pd.read_csv(p)
+            except Exception:
+                pass
+    return None
 
 df = load_data()
 

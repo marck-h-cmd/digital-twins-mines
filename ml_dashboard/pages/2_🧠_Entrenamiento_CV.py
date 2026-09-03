@@ -16,18 +16,39 @@ t = st.session_state.t
 
 st.title(t["nav_training"])
 
+import os
+from pathlib import Path
+
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv("../data/raw/synthetic_interactions.csv")
-        # Ensure target is categorical/numeric suitable for classification
-        df['target'] = df['risk_level'].map({'BAJO': 0, 'MEDIO': 1, 'ALTO': 2})
-        # Features
-        X = df[['distance', 'relative_velocity', 'angle', 'visibility', 'noise_level']]
-        y = df['target']
-        return X, y, df
-    except Exception as e:
-        return None, None, None
+    possible_paths = [
+        Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "synthetic_interactions.csv",
+        Path("data/raw/synthetic_interactions.csv"),
+        Path("../data/raw/synthetic_interactions.csv"),
+    ]
+    for p in possible_paths:
+        if os.path.exists(p):
+            try:
+                df = pd.read_csv(p)
+                if df['risk_level'].dtype == object:
+                    df['target'] = df['risk_level'].map({'BAJO': 0, 'MEDIO': 1, 'ALTO': 2}).fillna(0).astype(int)
+                else:
+                    df['target'] = df['risk_level'].astype(int)
+
+                feature_cols = [c for c in [
+                    'distance_3d', 'worker_speed', 'machine_speed', 'relative_speed',
+                    'direction_worker', 'direction_machine', 'ttc', 'in_restricted_zone',
+                    'machine_status', 'worker_bpm', 'fatigue_index', 'vibration_rms',
+                    'acceleration_z', 'gas_co_ppm', 'dust_density_mg_m3', 'ambient_light_lux'
+                ] if c in df.columns]
+
+                X = df[feature_cols]
+                y = df['target']
+                return X, y, df
+            except Exception as e:
+                st.error(f"Error loading dataset: {e}")
+                return None, None, None
+    return None, None, None
 
 X, y, df = load_data()
 
