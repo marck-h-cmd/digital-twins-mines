@@ -56,6 +56,10 @@ def render_sidebar():
 def main():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+    if "user_input" not in st.session_state:
+        st.session_state.user_input = ""
+    if "pass_input" not in st.session_state:
+        st.session_state.pass_input = ""
 
     if not st.session_state.authenticated:
         # Hide sidebar completely on login screen using CSS
@@ -67,10 +71,35 @@ def main():
             </style>
         """, unsafe_allow_html=True)
         
-        st.title("Login - M-11 Dashboard")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
+        st.title("🔑 Login - M-11 ML Dashboard")
+        st.caption("Sistema de Alerta Temprana de Riesgo Humano — Gemelo Digital")
+
+        # Botón de relleno rápido
+        col_btn1, col_btn2 = st.columns([1, 1])
+        with col_btn1:
+            if st.button("📝 Rellenar Credenciales Admin"):
+                st.session_state.user_input = "admin@example.com"
+                st.session_state.pass_input = "admin123"
+                safe_rerun()
+
+        with col_btn2:
+            if st.button("⚡ Login Directo Demo"):
+                import requests
+                try:
+                    res = requests.post("http://localhost:8000/api/v1/auth/login", data={"username": "admin@example.com", "password": "admin123"})
+                    if res.status_code == 200:
+                        st.session_state.token = res.json().get("access_token")
+                        st.session_state.authenticated = True
+                        safe_rerun()
+                except Exception as e:
+                    st.error(f"Cannot connect to the backend: {e}")
+
+        st.divider()
+
+        username = st.text_input("Username / Email", value=st.session_state.user_input, key="input_user")
+        password = st.text_input("Password", value=st.session_state.pass_input, type="password", key="input_pass")
+
+        if st.button("Iniciar Sesión", type="primary"):
             import requests
             auth_data = {"username": username, "password": password}
             try:
