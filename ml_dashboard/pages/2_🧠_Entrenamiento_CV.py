@@ -1,92 +1,103 @@
 import streamlit as st
 import pandas as pd
-import xgboost as xgb
-from sklearn.model_selection import KFold, cross_val_score, train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import numpy as np
 import plotly.express as px
-from utils.i18n import init_i18n
+import plotly.graph_objects as gg
+import os
+import json
+import joblib
+from pathlib import Path
+from utils.translations import get_text, get_current_lang, render_sidebar
+from utils.data_generator import generate_mining_telemetry_dataset
 
 if "authenticated" not in st.session_state or not st.session_state.authenticated:
     st.markdown("""<style>[data-testid="stSidebar"] {display: none;}</style>""", unsafe_allow_html=True)
     st.warning("Please login from the main page.")
     st.stop()
 
-init_i18n()
-t = st.session_state.t
+render_sidebar()
 
-st.title(t["nav_training"])
+st.title(get_text("page2_title"))
+st.caption(get_text("page2_caption"))
 
-import os
-from pathlib import Path
+ARTIFACT_DIR = Path(__file__).resolve().parent.parent.parent / "backend" / "app" / "ml" / "artifacts"
+CV_METRICS_PATH = ARTIFACT_DIR / "cv_metrics_results.json"
+META_PATH = ARTIFACT_DIR / "best_model_meta.json"
 
 @st.cache_data
-def load_data():
-    possible_paths = [
-        Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "synthetic_interactions.csv",
-        Path("data/raw/synthetic_interactions.csv"),
-        Path("../data/raw/synthetic_interactions.csv"),
-    ]
-    for p in possible_paths:
-        if os.path.exists(p):
-            try:
-                df = pd.read_csv(p)
-                if df['risk_level'].dtype == object:
-                    df['target'] = df['risk_level'].map({'BAJO': 0, 'MEDIO': 1, 'ALTO': 2}).fillna(0).astype(int)
-                else:
-                    df['target'] = df['risk_level'].astype(int)
+def load_cv_data():
+    cv_data = None
+    meta_data = None
+    if os.path.exists(CV_METRICS_PATH):
+        with open(CV_METRICS_PATH, "r", encoding="utf-8") as f:
+            cv_data = json.load(f)
+    if os.path.exists(META_PATH):
+        with open(META_PATH, "r", encoding="utf-8") as f:
+            meta_data = json.load(f)
+    return cv_data, meta_data
 
-                feature_cols = [c for c in [
-                    'distance_3d', 'worker_speed', 'machine_speed', 'relative_speed',
-                    'direction_worker', 'direction_machine', 'ttc', 'in_restricted_zone',
-                    'machine_status', 'worker_bpm', 'fatigue_index', 'vibration_rms',
-                    'acceleration_z', 'gas_co_ppm', 'dust_density_mg_m3', 'ambient_light_lux'
-                ] if c in df.columns]
+cv_results, meta_info = load_cv_data()
 
-                X = df[feature_cols]
-                y = df['target']
-                return X, y, df
-            except Exception as e:
-                st.error(f"Error loading dataset: {e}")
-                return None, None, None
-    return None, None, None
+# Botón para ejecutar el pipeline de entrenamiento
+col_tr1, col_tr2 = st.columns([3, 1])
+with col_tr1:
+    st.info(get_text("run_pipeline_info"))
+with col_tr2:
+    if st.button(get_text("run_pipeline_btn"), type="primary", use_container_width=True):
+        with st.spinner("Training models with Stratified 5-Fold CV..."):
+            from backend.scripts.train_cv import train_and_evaluate_cv
+            from backend.scripts.robust_stats_validation import run_robust_stats_validation
+            train_and_evaluate_cv()
+            run_robust_stats_validation()
+            st.cache_data.clear()
+            st.success("¡Pipeline OK!")
+            st.rerun()
 
-X, y, df = load_data()
+st.divider()
 
-if X is not None:
-    st.sidebar.header("Hyperparameters")
-    max_depth = st.sidebar.slider("Max Depth", 3, 10, 6)
-    n_estimators = st.sidebar.slider("Estimators", 50, 300, 100)
-    learning_rate = st.sidebar.select_slider("Learning Rate", options=[0.01, 0.05, 0.1, 0.2, 0.3], value=0.1)
+if cv_results:
+    # 1. Tabla Comparativa de Rendimiento
+    st.subheader(get_text("table2_title"))
     
-    if st.button(t["btn_train"]):
-        with st.spinner("Training model with K-Fold Cross Validation..."):
-            model = xgb.XGBClassifier(
-                max_depth=max_depth,
-                n_estimators=n_estimators,
-                learning_rate=learning_rate,
-                eval_metric="mlogloss"
-            )
-            
-            # K-Fold CV
-            kfold = KFold(n_splits=5, shuffle=True, random_state=42)
-            results = cross_val_score(model, X, y, cv=kfold)
-            
-            st.success(f"Cross Validation Accuracy: {results.mean()*100:.2f}% (+/- {results.std()*100:.2f}%)")
-            
-            # Train on full for feature importance
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-            
-            # Feature Importance
-            importance = model.feature_importances_
-            feat_imp_df = pd.DataFrame({'Feature': X.columns, 'Importance': importance}).sort_values(by='Importance', ascending=False)
-            fig_imp = px.bar(feat_imp_df, x='Importance', y='Feature', orientation='h', title="Feature Importance (XGBoost)")
-            st.plotly_chart(fig_imp, use_container_width=True)
-            
-            # Confusion Matrix
-            cm = confusion_matrix(y_test, y_pred)
-            fig_cm = px.imshow(cm, text_auto=True, title="Confusion Matrix", x=['BAJO', 'MEDIO', 'ALTO'], y=['BAJO', 'MEDIO', 'ALTO'])
-            st.plotly_chart(fig_cm, use_container_width=True)
-else:
-    st.warning("Data not available.")
+    summary_rows = []
+    champion_name = meta_info.get("model_name", "Voting Classifier") if meta_info else ""
+    
+    for model_name, folds in cv_results.items():
+        accs = [f["accuracy"] for f in folds]
+        f1s = [f["f1_macro"] for f in folds]
+        recs = [f["recall_macro"] for f in folds]
+        aucs = [f["auc_roc"] for f in folds]
+        inf_times = [f["inference_time_ms"] for f in folds]
+        
+        is_champion = (model_name == champion_name)
+        badge = "🏆 " + get_text("champion_model") if is_champion else "⚪ Evaluated"
+        
+        summary_rows.append({
+            "Status": badge,
+            "Architecture": model_name,
+            get_text("metric_accuracy"): f"{np.mean(accs):.4f} ± {np.std(accs):.4f}",
+            get_text("metric_f1"): f"{np.mean(f1s):.4f}",
+            get_text("metric_recall"): f"{np.mean(recs):.4f}",
+            get_text("metric_auc"): f"{np.mean(aucs):.4f}",
+            "Inference Time (ms)": f"{np.mean(inf_times):.2f} ms"
+        })
+        
+    df_summary = pd.DataFrame(summary_rows)
+    st.dataframe(df_summary, use_container_width=True)
+    
+    st.divider()
+    
+    # 2. Boxplot de Estabilidad (Figura 5)
+    st.subheader(get_text("fig5_title"))
+    
+    boxplot_data = []
+    for model_name, folds in cv_results.items():
+        for fold in folds:
+            boxplot_data.append({
+                "Modelo": model_name,
+                "Fold": f"Fold {fold['fold']}",
+                "Accuracy": fold["accuracy"]
+            })
+    df_box = pd.DataFrame(boxplot_data)
+    fig5 = px.box(df_box, x="Modelo", y="Accuracy", color="Modelo", points="all")
+    st.plotly_chart(fig5, use_container_width=True)

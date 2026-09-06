@@ -1,79 +1,60 @@
 import streamlit as st
-import requests
-import json
 import pandas as pd
-from utils.i18n import init_i18n
+import numpy as np
+import os
+import joblib
+from pathlib import Path
+from utils.translations import get_text, get_current_lang, render_sidebar
 
 if "authenticated" not in st.session_state or not st.session_state.authenticated:
     st.markdown("""<style>[data-testid="stSidebar"] {display: none;}</style>""", unsafe_allow_html=True)
     st.warning("Please login from the main page.")
     st.stop()
 
-init_i18n()
-t = st.session_state.t
+render_sidebar()
 
-st.title(t["nav_twin"])
-st.write("Real-time inference using the Digital Twin prediction backend.")
+st.title(get_text("page4_title"))
+st.caption(get_text("page4_caption"))
 
-API_URL = "http://localhost:8000/api/v1/predict/"
+ARTIFACT_DIR = Path(__file__).resolve().parent.parent.parent / "backend" / "app" / "ml" / "artifacts"
+MODEL_PATH = ARTIFACT_DIR / "best_risk_model.joblib"
 
-with st.form("digital_twin_test_form"):
-    st.subheader("Input Parameters")
-    col1, col2 = st.columns(2)
-    with col1:
-        distance_3d = st.number_input("Distance 3D (m)", min_value=0.0, max_value=100.0, value=15.0)
-        worker_speed = st.number_input("Worker Speed (m/s)", min_value=0.0, max_value=10.0, value=1.5)
-        machine_speed = st.number_input("Machine Speed (m/s)", min_value=0.0, max_value=30.0, value=5.0)
-        relative_speed = st.number_input("Relative Speed (m/s)", min_value=0.0, max_value=40.0, value=6.5)
-    with col2:
-        ttc = st.slider("Time to Collision (TTC - sec)", 0.0, 60.0, 5.0)
-        in_restricted_zone = st.selectbox("In Restricted Zone?", [0, 1])
-        machine_status = st.selectbox("Machine Status (0=Off, 1=Idle, 2=Active)", [0, 1, 2], index=2)
-        
-    submit = st.form_submit_button(t["btn_simulate"])
+@st.cache_resource
+def load_model():
+    if os.path.exists(MODEL_PATH):
+        return joblib.load(MODEL_PATH)
+    return None
 
-if submit:
-    payload = {
-        "worker_id": 1,
-        "machine_id": 1,
-        "worker_x": 0.0,
-        "worker_y": 0.0,
-        "worker_z": 0.0,
-        "machine_x": distance_3d,
-        "machine_y": 0.0,
-        "machine_z": 0.0,
-        "direction_worker": 90,
-        "direction_machine": 270,
-        "distance_3d": distance_3d,
-        "ttc": ttc,
-        "worker_speed": worker_speed,
-        "machine_speed": machine_speed,
-        "relative_speed": relative_speed,
-        "in_restricted_zone": in_restricted_zone,
-        "machine_status": machine_status
-    }
+artifact = load_model()
+
+st.subheader(get_text("input_params_title"))
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    dist = st.number_input(get_text("col_distance_3d"), min_value=0.1, max_value=100.0, value=8.5, step=0.5)
+    worker_speed = st.number_input("Velocidad Trabajador (m/s)" if get_current_lang() == "es" else "Worker Speed (m/s)", min_value=0.0, max_value=10.0, value=1.2, step=0.1)
+    machine_speed = st.number_input("Velocidad Maquinaria (m/s)" if get_current_lang() == "es" else "Machinery Speed (m/s)", min_value=0.0, max_value=30.0, value=4.0, step=0.5)
+
+with c2:
+    ttc = st.number_input(get_text("col_ttc"), min_value=0.1, max_value=30.0, value=3.2, step=0.2)
+    in_restr = st.selectbox("¿En Zona Restringida?" if get_current_lang() == "es" else "In Restricted Zone?", options=[0, 1], format_func=lambda x: ("Sí (1)" if x == 1 else "No (0)") if get_current_lang() == "es" else ("Yes (1)" if x == 1 else "No (0)"))
+    fatigue = st.slider(get_text("col_fatigue"), min_value=0.0, max_value=1.0, value=0.65, step=0.05)
+
+with c3:
+    bpm = st.number_input(get_text("col_bpm"), min_value=40.0, max_value=200.0, value=125.0, step=1.0)
+    co_ppm = st.number_input(get_text("col_gas_co"), min_value=0.0, max_value=200.0, value=28.0, step=1.0)
+    lux = st.number_input("Iluminación (Lux)" if get_current_lang() == "es" else "Ambient Light (Lux)", min_value=0.0, max_value=500.0, value=35.0, step=5.0)
+
+if st.button(get_text("btn_evaluate_event"), type="primary", use_container_width=True):
+    st.subheader(get_text("eval_results_title"))
     
-    with st.spinner("Connecting to Digital Twin backend..."):
-        try:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {st.session_state.get('token', '')}"
-            }
-            response = requests.post(API_URL, json=payload, headers=headers)
-            if response.status_code == 200:
-                result = response.json()
-                risk = result.get("risk_level", "UNKNOWN")
-                prob = result.get("probability", 0.0)
-                
-                if risk == "ALTO":
-                    st.error(f"⚠️ HIGH RISK DETECTED (Probability: {prob*100:.1f}%)")
-                elif risk == "MEDIO":
-                    st.warning(f"⚠️ MEDIUM RISK DETECTED (Probability: {prob*100:.1f}%)")
-                else:
-                    st.success(f"✅ LOW RISK (Probability: {prob*100:.1f}%)")
-                    
-                st.json(result)
-            else:
-                st.error(f"API Error {response.status_code}: {response.text}")
-        except requests.exceptions.ConnectionError:
-            st.error("Cannot connect to backend. Make sure the FastAPI server is running on localhost:8000")
+    if dist < 5.0 or ttc < 2.5 or fatigue > 0.8:
+        risk_label = get_text("alert_high")
+        st.error(f"⚠️ **{risk_label}** — {get_text('alert_high')}")
+    elif dist < 12.0 or ttc < 5.0 or fatigue > 0.5:
+        risk_label = get_text("alert_medium")
+        st.warning(f"⚡ **{risk_label}** — {get_text('alert_medium')}")
+    else:
+        risk_label = get_text("alert_low")
+        st.success(f"✅ **{risk_label}** — {get_text('alert_low')}")

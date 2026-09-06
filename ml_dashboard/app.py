@@ -32,26 +32,26 @@ def safe_rerun():
     elif hasattr(st, "experimental_rerun"):
         st.experimental_rerun()
 
+from utils.translations import get_text, get_current_lang, init_language
+
 def render_sidebar():
-    st.sidebar.title("M-11 Dashboard")
-    st.sidebar.markdown(f"**{t['sidebar_lang']}**")
+    init_language()
+    st.sidebar.title(get_text("sidebar_title"))
     
-    # Renderizar botones de banderas en columnas
-    cols = st.sidebar.columns(5)
-    for idx, (lang_code, info) in enumerate(FLAGS.items()):
-        img_path = os.path.join(IMG_DIR, info["file"])
-        with cols[idx]:
-            try:
-                img = Image.open(img_path)
-                st.image(img, use_container_width=True)
-            except Exception as e:
-                pass
-            if st.button("🌐", key=f"btn_{lang_code}", help=info["label"]):
-                change_lang(lang_code)
-                safe_rerun()
-                
+    current_l = get_current_lang()
+    lang_choice = st.sidebar.selectbox(
+        get_text("sidebar_lang"),
+        options=["es", "en"],
+        format_func=lambda x: "🇪🇸 Español" if x == "es" else "🇺🇸 English",
+        index=0 if current_l == "es" else 1,
+        key="global_lang_selectbox"
+    )
+    if lang_choice != current_l:
+        change_lang(lang_choice)
+        safe_rerun()
+        
     st.sidebar.divider()
-    st.sidebar.info("M-11 Digital Twin AI System")
+    st.sidebar.info(get_text("app_title"))
 
 def main():
     if "authenticated" not in st.session_state:
@@ -116,14 +116,14 @@ def main():
 
     render_sidebar()
     
-    st.title(t["title"])
-    st.markdown(f"### {t['welcome']}")
-    st.markdown(t["desc"])
+    st.title(get_text("title", "Panel Científico — Gemelo Digital y Prevención de Riesgos (M-11)"))
+    st.markdown(f"### {get_text('welcome', 'Bienvenido al Dashboard Científico de IA M-11')}")
+    st.markdown(get_text("desc", "Utilice la barra lateral para navegar entre las secciones."))
     
     st.divider()
     
     # Contenido Home
-    st.info("👈 " + t["desc"])
+    st.info("👈 " + get_text("desc", "Utilice la barra lateral para navegar entre las secciones."))
 
 if __name__ == "__main__":
     main()
