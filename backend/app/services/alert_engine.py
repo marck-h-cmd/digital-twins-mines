@@ -63,6 +63,7 @@ async def process_prediction(interaction_in: InteractionCreate, prediction: Dict
             # 5. Broadcast complete payload over WebSockets to 3D Digital Twin
             await alert_manager.broadcast_alert({
                 "alert_id": alert_id,
+                "model_name": prediction.get("model_name", "RandomForest"),
                 "level": risk_level,
                 "risk_level": risk_level,
                 "risk_score": risk_score,

@@ -46,16 +46,18 @@ class MLLoader:
         }
     
     def _prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        target_cols = list(self.scaler.feature_names_in_) if (self.scaler and hasattr(self.scaler, "feature_names_in_")) else self.feature_names
         defaults = {
             'distance_3d': 15.0, 'ttc': 10.0, 'relative_speed': 3.5,
             'worker_speed': 1.2, 'machine_speed': 2.3, 'in_restricted_zone': 0,
             'worker_bpm': 75.0, 'fatigue_index': 0.2, 'vibration_rms': 0.8,
-            'gas_co_ppm': 10.0, 'dust_density_mg_m3': 1.0, 'ambient_light_lux': 60.0
+            'gas_co_ppm': 10.0, 'dust_density_mg_m3': 1.0, 'ambient_light_lux': 60.0,
+            'acceleration_z': 9.81, 'direction_worker': 0, 'direction_machine': 0, 'machine_status': 1
         }
-        for col in self.feature_names:
+        for col in target_cols:
             if col not in df.columns:
                 df[col] = defaults.get(col, 0.0)
-        return df[self.feature_names]
+        return df[target_cols]
 
     def _generate_explanation(self, row: pd.Series, risk_level: str) -> str:
         factors = []
@@ -95,6 +97,7 @@ class MLLoader:
         explanation = self._generate_explanation(df.iloc[0], risk_label)
         
         return {
+            "model_name": self.get_metadata().get("model_name", "RandomForest"),
             "risk_level": risk_label,
             "risk_score": round(risk_score, 2),
             "probability": float(probas[prediction_idx]),

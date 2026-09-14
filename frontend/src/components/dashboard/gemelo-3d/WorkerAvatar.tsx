@@ -65,6 +65,21 @@ export default function WorkerAvatar({ position, riskLevel, label, bpm = 85, fat
         <meshStandardMaterial color={isFatigued ? "#ef4444" : "#facc15"} roughness={0.3} />
       </mesh>
 
+      {/* Headlamp on helmet (Linterna de casco minero) */}
+      <mesh position={[0, 1.5, 0.22]}>
+        <boxGeometry args={[0.08, 0.08, 0.06]} />
+        <meshStandardMaterial color="#ffffff" emissive="#fef08a" emissiveIntensity={2.0} />
+      </mesh>
+      <spotLight
+        position={[0, 1.5, 0.25]}
+        target-position={[0, 0.5, 6]}
+        angle={0.45}
+        penumbra={0.3}
+        intensity={3.5}
+        color="#fef3c7"
+        distance={15}
+      />
+
       {/* Left arm */}
       <mesh position={[-0.28, 0.85, 0]} rotation={[0, 0, 0.3]} castShadow>
         <cylinderGeometry args={[0.07, 0.07, 0.5, 8]} />
@@ -90,15 +105,21 @@ export default function WorkerAvatar({ position, riskLevel, label, bpm = 85, fat
       </mesh>
 
       {/* Label with Biometrics */}
-      <Html position={[0, 1.9, 0]} center distanceFactor={8}>
-        <div className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded text-xs font-bold text-white shadow-lg whitespace-nowrap ${
-          riskLevel === 'ALTO' ? 'bg-red-600' :
-          riskLevel === 'MEDIO' ? 'bg-amber-500 text-black' :
-          'bg-emerald-600'
+      <Html position={[0, 2.0, 0]} center distanceFactor={8}>
+        <div className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white shadow-2xl backdrop-blur-md border whitespace-nowrap ${
+          riskLevel === 'ALTO' ? 'bg-red-600/90 border-red-400' :
+          riskLevel === 'MEDIO' ? 'bg-amber-500/90 border-amber-300 text-black' :
+          'bg-emerald-600/90 border-emerald-400'
         }`}>
-          <div>{label}</div>
-          <div className="text-[10px] font-normal opacity-90">
-            ❤️ {Math.round(bpm)} BPM {isFatigued ? '⚠️ FATIGA' : ''}
+          <div className="flex items-center gap-1">
+            <span>👷</span>
+            <span>{label}</span>
+          </div>
+          <div className="text-[10px] font-medium opacity-95 flex items-center gap-1 border-t border-white/20 pt-0.5 w-full justify-center">
+            <span>❤️ {Math.round(bpm)} BPM</span>
+            <span>|</span>
+            <span>⚡ Fatiga: {fatigueIndex.toFixed(2)}</span>
+            {isFatigued && <span className="text-red-200 animate-pulse font-extrabold">⚠️ ALERTA</span>}
           </div>
         </div>
       </Html>

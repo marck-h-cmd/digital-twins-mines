@@ -49,12 +49,92 @@ with c3:
 if st.button(get_text("btn_evaluate_event"), type="primary", use_container_width=True):
     st.subheader(get_text("eval_results_title"))
     
-    if dist < 5.0 or ttc < 2.5 or fatigue > 0.8:
-        risk_label = get_text("alert_high")
-        st.error(f"⚠️ **{risk_label}** — {get_text('alert_high')}")
-    elif dist < 12.0 or ttc < 5.0 or fatigue > 0.5:
-        risk_label = get_text("alert_medium")
-        st.warning(f"⚡ **{risk_label}** — {get_text('alert_medium')}")
+    # Mapeo de valores por defecto idénticos a model_loader.py del backend
+    defaults = {
+        'distance_3d': 15.0, 'ttc': 10.0, 'relative_speed': 3.5,
+        'worker_speed': 1.2, 'machine_speed': 2.3, 'in_restricted_zone': 0,
+        'worker_bpm': 75.0, 'fatigue_index': 0.2, 'vibration_rms': 0.8,
+        'gas_co_ppm': 10.0, 'dust_density_mg_m3': 1.0, 'ambient_light_lux': 60.0,
+        'acceleration_z': 9.81, 'direction_worker': 0, 'direction_machine': 0, 'machine_status': 1
+    }
+
+    # Construir mapa de características telemétricas
+    rel_speed = float(worker_speed + machine_speed)
+    input_features = {
+        'distance_3d': float(dist),
+        'worker_speed': float(worker_speed),
+        'machine_speed': float(machine_speed),
+        'relative_speed': rel_speed,
+        'direction_worker': 0,
+        'direction_machine': 0,
+        'ttc': float(ttc),
+        'in_restricted_zone': int(in_restr),
+        'machine_status': 1,
+        'worker_bpm': float(bpm),
+        'fatigue_index': float(fatigue),
+        'vibration_rms': 0.8,
+        'acceleration_z': 9.81,
+        'gas_co_ppm': float(co_ppm),
+        'dust_density_mg_m3': 1.0,
+        'ambient_light_lux': float(lux)
+    }
+
+    model_obj = None
+    scaler_obj = None
+    model_name = "RandomForest"
+
+    if isinstance(artifact, dict):
+        model_obj = artifact.get("model")
+        scaler_obj = artifact.get("scaler")
+        model_name = artifact.get("model_name", "RandomForest")
+    elif artifact is not None:
+        model_obj = artifact
+
+    if model_obj is not None:
+        # Determinar nombres de columnas requeridos por el scaler/modelo
+        required_cols = None
+        if scaler_obj is not None and hasattr(scaler_obj, "feature_names_in_"):
+            required_cols = list(scaler_obj.feature_names_in_)
+        elif isinstance(artifact, dict) and "feature_names" in artifact:
+            required_cols = artifact["feature_names"]
+        
+        if required_cols:
+            for col in required_cols:
+                if col not in input_features:
+                    input_features[col] = defaults.get(col, 0.0)
+            df_eval = pd.DataFrame([input_features])[required_cols]
+        else:
+            df_eval = pd.DataFrame([input_features])
+
+        X_eval = scaler_obj.transform(df_eval) if scaler_obj is not None else df_eval.values
+        pred_idx = int(model_obj.predict(X_eval)[0])
+        probas = model_obj.predict_proba(X_eval)[0]
+        
+        class_labels = ["BAJO", "MEDIO", "ALTO"]
+        predicted_class = class_labels[min(pred_idx, 2)]
+        confidence = float(probas[pred_idx]) * 100
+
+        res_col1, res_col2 = st.columns([1, 2])
+        with res_col1:
+            st.metric(label=f"Modelo Campeón ({model_name})", value=predicted_class, delta=f"Confianza: {confidence:.1f}%")
+
+        with res_col2:
+            st.write("**Probabilidades por Clase de Riesgo:**")
+            st.progress(float(probas[0]), text=f"BAJO: {probas[0]*100:.1f}%")
+            st.progress(float(probas[1]), text=f"MEDIO: {probas[1]*100:.1f}%")
+            st.progress(float(probas[2]), text=f"ALTO: {probas[2]*100:.1f}%")
+
+        if predicted_class == "ALTO":
+            st.error(f"⚠️ **RIESGO ALTO (COLISIÓN / PELIGRO DETECTADO)** — Confianza del modelo: {confidence:.1f}%")
+        elif predicted_class == "MEDIO":
+            st.warning(f"⚡ **RIESGO MEDIO (PRECAUCIÓN OPERATIVA)** — Confianza del modelo: {confidence:.1f}%")
+        else:
+            st.success(f"✅ **RIESGO BAJO (OPERACIÓN SEGURA)** — Confianza del modelo: {confidence:.1f}%")
     else:
-        risk_label = get_text("alert_low")
-        st.success(f"✅ **{risk_label}** — {get_text('alert_low')}")
+        # Fallback si no está el archivo compilado .joblib
+        if dist < 5.0 or ttc < 2.5 or fatigue > 0.8:
+            st.error("⚠️ **RIESGO ALTO** — Inferencia heurística (Artefacto no cargado)")
+        elif dist < 12.0 or ttc < 5.0 or fatigue > 0.5:
+            st.warning("⚡ **RIESGO MEDIO** — Inferencia heurística (Artefacto no cargado)")
+        else:
+            st.success("✅ **RIESGO BAJO** — Inferencia heurística (Artefacto no cargado)")

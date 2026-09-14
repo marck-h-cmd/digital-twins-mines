@@ -7,17 +7,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from passlib.context import CryptContext
+import bcrypt
 
 from app.db.session import async_session, engine, Base
 from app.models.user import User
 from app.models.worker import Worker
 from app.models.machine import Machine
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 async def init_and_seed():
     print("[1/2] Inicializando tablas de la base de datos...")
@@ -40,9 +38,12 @@ async def init_and_seed():
                 is_active=True
             )
             session.add(admin_user)
+            await session.commit()
             print("[USER] Usuario Admin creado: admin@example.com | Password: admin123")
         else:
-            print("[USER] Usuario Admin ya existente.")
+            user.password_hash = get_password_hash("admin123")
+            await session.commit()
+            print("[USER] Usuario Admin actualizado con nueva contraseña hash.")
 
         # Check workers
         w_res = await session.execute(select(Worker))

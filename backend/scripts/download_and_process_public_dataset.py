@@ -92,17 +92,38 @@ def download_and_process():
     df['dust_density_mg_m3'] = dust_density_mg_m3
     df['ambient_light_lux'] = ambient_light_lux
 
-    # Target multi-clase: 0: BAJO, 1: MEDIO, 2: ALTO
+    # 5. Generación de Target Sintético para Pruebas de Concepto de Pipeline (PoC)
+    # ⚠️ DECLARACIÓN METODOLÓGICA: Al no existir un dataset público de libre acceso con registro 
+    # simultáneo de colisiones subterráneas reales y biometría en tiempo real, el ground-truth
+    # 'risk_level' se sintetiza mediante una función de utilidad ponderada de diseño heurístico.
+    # Las normas internacionales (EMESRT Control Framework, ISO 21815-2, ISO 8996) definen 
+    # niveles funcionales y protocolos de medición, NO fórmulas matemáticas cerradas con coeficientes.
+    # Por ende, los pesos asignados representan un modelo heurístico cualitativo de diseño.
+
+    spatial_risk = (
+        (12.0 / np.maximum(distance_3d, 0.8)) * 2.0 +
+        (8.0 / np.maximum(ttc, 0.5)) * 1.8 +
+        in_restricted_zone * 2.0
+    )
+    
+    multimodal_risk = (
+        fatigue_index * 1.8 +
+        (np.maximum(worker_bpm - 60, 0) / 50.0) * 1.0 +
+        (gas_co_ppm / 40.0) * 1.0 +
+        (dust_density_mg_m3 / 5.0) * 0.6 -
+        (ambient_light_lux / 120.0) * 0.5
+    )
+    
+    # Ruido estocástico para simular variabilidad de sensor y evitar separabilidad artificial perfecta (Cohen's d realista)
+    stochastic_noise = np.random.normal(0, 3.8, n)
+    
+    risk_score = spatial_risk + multimodal_risk + stochastic_noise
+
+    # Mapeo a 3 clases discretas vía percentiles calibrados (BAJO: 45%, MEDIO: 33%, ALTO: 22%)
+    p45, p78 = np.percentile(risk_score, [45, 78])
     risk_level = np.zeros(n, dtype=int)
-    for i in range(n):
-        if (distance_3d[i] <= 5.0 or ttc[i] <= 5.0 or df['failure_flag'].iloc[i] == 1 or 
-            fatigue_index[i] > 0.75 or gas_co_ppm[i] > 50.0):
-            risk_level[i] = 2
-        elif (distance_3d[i] <= 15.0 or ttc[i] <= 15.0 or in_restricted_zone[i] == 1 or 
-              fatigue_index[i] > 0.4 or worker_bpm[i] > 115):
-            risk_level[i] = 1
-        else:
-            risk_level[i] = 0
+    risk_level[risk_score >= p45] = 1  # MEDIO
+    risk_level[risk_score >= p78] = 2  # ALTO
 
     df['risk_level'] = risk_level
 

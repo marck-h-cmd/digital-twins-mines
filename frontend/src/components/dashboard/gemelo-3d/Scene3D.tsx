@@ -1,23 +1,40 @@
 'use client';
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid } from '@react-three/drei';
-import { PCFShadowMap } from 'three';
+import { PCFShadowMap, MathUtils } from 'three';
 import TunnelGeometry from './TunnelGeometry';
 import WorkerAvatar from './WorkerAvatar';
 import MachineModel from './MachineModel';
 import RestrictedZone from './RestrictedZone';
 import InfoPanel3D from './InfoPanel3D';
 import { useAlertStore } from '@/store/alertStore';
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/v1/alerts/ws';
+
+type CameraPreset = 'isometric' | 'machine' | 'worker';
+
+function CameraRig({ viewPreset }: { viewPreset: CameraPreset }) {
+  const { camera } = useThree();
+  useFrame((_, delta) => {
+    let targetPos = [12, 10, 14];
+    if (viewPreset === 'machine') targetPos = [20, 5, 8];
+    if (viewPreset === 'worker') targetPos = [2, 4, 6];
+
+    camera.position.x = MathUtils.lerp(camera.position.x, targetPos[0], delta * 2.5);
+    camera.position.y = MathUtils.lerp(camera.position.y, targetPos[1], delta * 2.5);
+    camera.position.z = MathUtils.lerp(camera.position.z, targetPos[2], delta * 2.5);
+  });
+  return null;
+}
 
 export default function Scene3D() {
   const alerts = useAlertStore((state) => state.alerts);
   const addAlert = useAlertStore((state) => state.addAlert);
   const activeAlert = alerts.length > 0 ? alerts[0] : null;
+  const [viewPreset, setViewPreset] = useState<CameraPreset>('isometric');
 
   const handleWsMessage = useCallback((data: any) => addAlert(data), [addAlert]);
   useWebSocket(WS_URL, handleWsMessage);
@@ -45,12 +62,13 @@ export default function Scene3D() {
   return (
     <>
       <Canvas
-        camera={{ position: [10, 8, 10], fov: 50 }}
+        camera={{ position: [12, 10, 14], fov: 50 }}
         shadows={{ type: PCFShadowMap }}
         className="w-full h-full"
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#111827']} />
+        <color attach="background" args={['#090d16']} />
+        <CameraRig viewPreset={viewPreset} />
 
         {/* Luces */}
         <ambientLight intensity={0.4} />
@@ -84,16 +102,16 @@ export default function Scene3D() {
             position={[0, -0.01, 0]}
           />
 
-          {/* Niebla de Gas/Polvo ambiental (Tema 3) */}
+          {/* Niebla de Gas/Polvo ambiental */}
           {((activeAlert?.gas_co_ppm ?? 0) > 30 || (activeAlert?.dust_density_mg_m3 ?? 0) > 3) && (
             <fog attach="fog" args={['#1f2937', 5, 22]} />
           )}
 
-          {/* El Túnel */}
+          {/* El Túnel Minero Subterráneo */}
           <TunnelGeometry />
 
           {/* Zona Restringida */}
-          <RestrictedZone position={[5, 0, -5]} size={[10, 4, 10]} name="Zona Carguío" />
+          <RestrictedZone position={[5, 0, -5]} size={[10, 4, 10]} name="Zona Carguío LHD" />
 
           {/* Trabajadores con Biometría y Posición Dinámica */}
           <WorkerAvatar
@@ -115,12 +133,11 @@ export default function Scene3D() {
           <MachineModel
             position={machinePos}
             riskLevel={machineRisk}
-            label={`M-001 (LHD) [${Math.round(rawDist)}m]`}
+            label={`M-001 (LHD Loader) [${Math.round(rawDist)}m]`}
           />
         </Suspense>
 
-
-        {/* Controles de cámara */}
+        {/* Controles de cámara manuales */}
         <OrbitControls
           makeDefault
           maxPolarAngle={Math.PI / 2 - 0.05}
@@ -128,6 +145,40 @@ export default function Scene3D() {
           maxDistance={40}
         />
       </Canvas>
+
+      {/* Selector Flotante de Perspectivas de Cámara 3D */}
+      <div className="absolute bottom-4 left-4 z-10 flex gap-2 bg-card/90 backdrop-blur-md p-1.5 rounded-xl border border-primary/20 shadow-2xl">
+        <button
+          onClick={() => setViewPreset('isometric')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            viewPreset === 'isometric'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+        >
+          🎥 General
+        </button>
+        <button
+          onClick={() => setViewPreset('machine')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            viewPreset === 'machine'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+        >
+          🚜 LHD Loader
+        </button>
+        <button
+          onClick={() => setViewPreset('worker')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            viewPreset === 'worker'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+        >
+          👷 Operador
+        </button>
+      </div>
 
       <InfoPanel3D activeAlert={activeAlert} />
     </>

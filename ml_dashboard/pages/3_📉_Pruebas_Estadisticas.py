@@ -48,10 +48,32 @@ if stats_data:
     st.divider()
 
     st.subheader(get_text("wilcoxon_result_title"))
+    
+    # Soporte para ambas estructuras de reporte JSON
     if "pairwise_hypothesis_tests" in st_tests:
         df_wilc = pd.DataFrame(st_tests["pairwise_hypothesis_tests"])
         st.dataframe(df_wilc, use_container_width=True)
+    elif "comparisons" in stats_data:
+        comps = stats_data["comparisons"]
+        rows = []
+        for model_name, comp_info in comps.items():
+            t_info = comp_info.get("t_student", {})
+            w_info = comp_info.get("wilcoxon_signed_rank", {})
+            ci = comp_info.get("ci_95_percent", [0.0, 0.0])
+            rows.append({
+                "Modelo Control": model_name,
+                "F1 Modelo Control": f"{comp_info.get('comparison_model_f1', 0.0):.4f}",
+                "Diferencia F1 (Δ)": f"{comp_info.get('mean_f1_difference', 0.0):+.4f}",
+                "IC 95%": f"[{ci[0]:.4f}, {ci[1]:.4f}]",
+                "Estadístico t": f"{t_info.get('t_statistic', 0.0):.4f}",
+                "p-value (t-test)": f"{t_info.get('p_value', 1.0):.6f}",
+                "Estadístico W": f"{w_info.get('w_statistic', 0.0):.4f}",
+                "p-value (Wilcoxon)": f"{w_info.get('p_value', 1.0):.6f}",
+                "Conclusión": comp_info.get("conclusion", "N/A")
+            })
+        df_wilc = pd.DataFrame(rows)
+        st.dataframe(df_wilc, use_container_width=True)
     else:
-        st.info("Visualizando comparaciones par a par...")
+        st.info("No se encontraron pruebas par a par estructuradas en el reporte.")
 else:
     st.warning("No se encontraron artefactos de validación estadística.")

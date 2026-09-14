@@ -88,17 +88,40 @@ export default function MachineModel({ position, riskLevel, label }: MachineProp
       {/* Status light on top - color indicates risk */}
       <mesh position={[0.5, 1.65, 0]}>
         <sphereGeometry args={[0.12, 8, 8]} />
-        <meshStandardMaterial color={riskColor} emissive={riskColor} emissiveIntensity={0.8} />
+        <meshStandardMaterial color={riskColor} emissive={riskColor} emissiveIntensity={1.5} />
       </mesh>
+      <pointLight position={[0.5, 1.8, 0]} color={riskColor} intensity={riskLevel === 'ALTO' ? 4.0 : 1.5} distance={10} />
+
+      {/* Faros Frontales del LHD Loader proyectados hacia el socavón */}
+      <spotLight
+        position={[-1.8, 0.8, 0.3]}
+        target-position={[-10, 0, 0.3]}
+        angle={0.5}
+        penumbra={0.4}
+        intensity={5.0}
+        color="#fffbeb"
+        distance={25}
+        castShadow
+      />
+      <spotLight
+        position={[-1.8, 0.8, -0.3]}
+        target-position={[-10, 0, -0.3]}
+        angle={0.5}
+        penumbra={0.4}
+        intensity={5.0}
+        color="#fffbeb"
+        distance={25}
+      />
 
       {/* Label */}
-      <Html position={[0, 2.2, 0]} center distanceFactor={8}>
-        <div className={`px-2 py-1 rounded text-xs font-bold text-white shadow-lg whitespace-nowrap ${
-          riskLevel === 'ALTO' ? 'bg-red-600' :
-          riskLevel === 'MEDIO' ? 'bg-amber-500 text-black' :
-          'bg-blue-600'
+      <Html position={[0, 2.3, 0]} center distanceFactor={8}>
+        <div className={`px-2.5 py-1 rounded-md text-xs font-extrabold text-white shadow-2xl backdrop-blur-sm border whitespace-nowrap flex items-center gap-1.5 ${
+          riskLevel === 'ALTO' ? 'bg-red-600/90 border-red-400' :
+          riskLevel === 'MEDIO' ? 'bg-amber-500/90 border-amber-300 text-black' :
+          'bg-blue-600/90 border-blue-400'
         }`}>
-          {label}
+          <span>🚜</span>
+          <span>{label}</span>
         </div>
       </Html>
     </group>
