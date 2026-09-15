@@ -9,24 +9,43 @@ import MachineModel from './MachineModel';
 import RestrictedZone from './RestrictedZone';
 import InfoPanel3D from './InfoPanel3D';
 import { useAlertStore } from '@/store/alertStore';
-import { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useState, useEffect } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/v1/alerts/ws';
 
-type CameraPreset = 'isometric' | 'machine' | 'worker';
+type CameraPreset = 'isometric' | 'machine' | 'worker' | 'free';
 
 function CameraRig({ viewPreset }: { viewPreset: CameraPreset }) {
   const { camera } = useThree();
-  useFrame((_, delta) => {
-    let targetPos = [12, 10, 14];
-    if (viewPreset === 'machine') targetPos = [20, 5, 8];
-    if (viewPreset === 'worker') targetPos = [2, 4, 6];
+  const [target, setTarget] = useState<[number, number, number] | null>(null);
 
-    camera.position.x = MathUtils.lerp(camera.position.x, targetPos[0], delta * 2.5);
-    camera.position.y = MathUtils.lerp(camera.position.y, targetPos[1], delta * 2.5);
-    camera.position.z = MathUtils.lerp(camera.position.z, targetPos[2], delta * 2.5);
+  useEffect(() => {
+    if (viewPreset === 'isometric') setTarget([12, 10, 14]);
+    else if (viewPreset === 'machine') setTarget([20, 5, 8]);
+    else if (viewPreset === 'worker') setTarget([2, 4, 6]);
+    else setTarget(null);
+  }, [viewPreset]);
+
+  useFrame((_, delta) => {
+    if (!target) return;
+
+    camera.position.x = MathUtils.lerp(camera.position.x, target[0], delta * 3);
+    camera.position.y = MathUtils.lerp(camera.position.y, target[1], delta * 3);
+    camera.position.z = MathUtils.lerp(camera.position.z, target[2], delta * 3);
+
+    // Release camera lock when close enough to preset target
+    const dist = Math.hypot(
+      camera.position.x - target[0],
+      camera.position.y - target[1],
+      camera.position.z - target[2]
+    );
+
+    if (dist < 0.1) {
+      setTarget(null);
+    }
   });
+
   return null;
 }
 
@@ -143,6 +162,7 @@ export default function Scene3D() {
           maxPolarAngle={Math.PI / 2 - 0.05}
           minDistance={2}
           maxDistance={40}
+          onStart={() => setViewPreset('free')}
         />
       </Canvas>
 
@@ -184,3 +204,4 @@ export default function Scene3D() {
     </>
   );
 }
+
