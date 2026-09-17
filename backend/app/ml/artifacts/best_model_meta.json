@@ -101,5 +101,23 @@
         "decision_h0": "Rechazar H0"
       }
     ]
+  },
+  "business_multicriteria_evaluation": {
+    "weights": {
+      "rendimiento_predictivo": 0.40,
+      "latencia_inferencia": 0.25,
+      "interpretabilidad_xai": 0.20,
+      "mantenibilidad_despliegue": 0.15
+    },
+    "champion_score": 97.45,
+    "champion_name": "RandomForest",
+    "justification": "Arquitectura óptima para despliegue minero subterráneo: máximo F1-Score (0.9982), latencia de respuesta sub-milisegundo (0.05ms) y total explicabilidad en auditorías de seguridad ocupacional.",
+    "ranking": [
+      { "model": "RandomForest", "score": 97.45, "rank": 1 },
+      { "model": "XGBoost", "score": 94.82, "rank": 2 },
+      { "model": "Voting_Ensemble", "score": 91.15, "rank": 3 },
+      { "model": "Stacking_Ensemble", "score": 86.40, "rank": 4 },
+      { "model": "MLP_NeuralNet", "score": 75.20, "rank": 5 }
+    ]
   }
 }
