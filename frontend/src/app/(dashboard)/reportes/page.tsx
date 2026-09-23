@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Sparkles, Send, Bot } from 'lucide-react';
+import {
+  FileText, Download, Sparkles, Send, Bot, Eye, Maximize2, Minimize2,
+  ZoomIn, ZoomOut, RotateCcw, Copy, Check, Code, FileCode, Sliders, ShieldCheck
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
@@ -15,44 +18,163 @@ interface ChatMessage {
 }
 
 export default function ReportesPage() {
+  // Configurator state (Defaulted to Operational Worker Mode)
+  const [evaluatorName, setEvaluatorName] = useState('Ing. SANTOS FERNANDEZ JUAN PEDRO');
+  const [technicalNotes, setTechnicalNotes] = useState('Monitoreo telemétrico continuo en frentes de extracción M-11. Registro de alertas operacionales de proximidad y fatiga.');
+  const [includeFriedman, setIncludeFriedman] = useState(false);
+  const [includeMetrics, setIncludeMetrics] = useState(false);
+  
+  // UI Preview controls state
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'preview' | 'chat'>('preview');
+
+  // Modals & Blob states
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+
+  const [jsonModalOpen, setJsonModalOpen] = useState(false);
+  const [markdownModalOpen, setMarkdownModalOpen] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
+
+  // File Generation State
   const [generating, setGenerating] = useState(false);
   const [generatedFile, setGeneratedFile] = useState<string | null>(null);
+
+  // Chat State
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'bot', text: 'Hola, soy M-11 AI. Pregúntame sobre normativas de seguridad minera, procedimientos en frentes de extracción o cómo interpretar alertas de riesgo.' }
+    { role: 'bot', text: 'Hola, soy el Asistente M-11 AI. ¿Deseas consultar sobre normativas de seguridad minera, pruebas estadísticas o interpretación de alertas?' }
   ]);
 
+  // Mock Metadata for JSON viewer
+  const mockMetadata = {
+    system: "SISTEMA M-11 — GEMELO DIGITAL Y PREVENCIÓN DE RIESGOS",
+    institution: "Minería Subterránea M-11",
+    evaluator: evaluatorName,
+    notes: technicalNotes,
+    timestamp: new Date().toISOString(),
+    champion_model: {
+      name: "RandomForestClassifier",
+      accuracy: 0.9985,
+      f1_macro: 0.9982,
+      precision_macro: 0.9976,
+      recall_macro: 0.9988,
+      auc_roc: 1.0000,
+      hyperparameters: { n_estimators: 200, max_depth: 12, random_state: 42 }
+    },
+    statistical_tests: {
+      friedman_test_included: includeFriedman,
+      friedman_stat: 19.04,
+      friedman_p_value: 0.00077,
+      nemenyi_critical_distance: 2.728,
+      pairwise_wilcoxon: [
+        { comparison: "RandomForest vs XGBoost", p_value: 0.36689, h0_rejected: false },
+        { comparison: "RandomForest vs MLP_NeuralNet", p_value: 0.00001, h0_rejected: true }
+      ]
+    },
+    telemetry_summary: {
+      total_evaluations: 20,
+      high_risk: 7,
+      medium_risk: 12,
+      low_risk: 1
+    }
+  };
+
+  // Mock Markdown text
+  const generateMarkdownContent = () => `
+# SISTEMA M-11 — GEMELO DIGITAL Y PREVENCIÓN DE RIESGOS
+**Informe Técnico de Alerta Temprana y Validación de Simulaciones ML**
+
+---
+- **Fecha:** ${new Date().toLocaleString()}
+- **Evaluador / Responsable:** ${evaluatorName}
+- **Entorno:** Minería Subterránea M-11
+
+---
+## 1. Resumen Ejecutivo
+- **Total Evaluaciones Telemétricas:** 20
+- **Riesgo Alto (🔴):** 7 (35.0%)
+- **Riesgo Medio (🟡):** 12 (60.0%)
+- **Riesgo Bajo (🟢):** 1 (5.0%)
+
+---
+## 2. Notas Técnicas y Observaciones
+${technicalNotes}
+
+---
+${includeFriedman ? `
+## 3. Anexo: Validación Estadística de Hipótesis
+- **Friedman Stat:** 19.04 (p = 0.00077 < 0.05 -> Rechazar H0)
+- **Nemenyi CD:** 2.728
+- **RandomForest vs XGBoost:** p = 0.36689 (No Rechazar H0)
+- **RandomForest vs MLP:** p = 0.00001 (Rechazar H0)
+` : ''}
+
+---
+*Reporte autogenerado por el Gemelo Digital M-11.*
+`;
+
+  // Handlers
   const handleGenerateReport = async (format: string = 'pdf') => {
     setGenerating(true);
-    setGeneratedFile(null);
     try {
-      const res = await api.post(`/reports?format=${format}`);
+      const res = await api.post(`/reports?format=${format}&evaluator_name=${encodeURIComponent(evaluatorName)}&technical_notes=${encodeURIComponent(technicalNotes)}&include_friedman=${includeFriedman}`);
       setGeneratedFile(res.data.filename);
+      return res.data.filename;
     } catch (err) {
       console.error('Error generando reporte:', err);
+      return null;
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleDownload = async () => {
-    if (!generatedFile) return;
+  const handlePdfIframePreview = async () => {
+    setLoadingPdf(true);
+    setPdfModalOpen(true);
     try {
-      const response = await api.get(`/reports/${generatedFile}/download`, {
-        responseType: 'blob',
-      });
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', generatedFile);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      const filename = await handleGenerateReport('pdf');
+      if (filename) {
+        const response = await api.get(`/reports/${filename}/download`, { responseType: 'blob' });
+        const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        setPdfUrl(blobUrl);
+      }
     } catch (err) {
-      console.error('Error al descargar el reporte:', err);
+      console.error('Error en vista previa de PDF:', err);
+    } finally {
+      setLoadingPdf(false);
     }
+  };
+
+  const handleDownloadFile = async (fmt: string) => {
+    setGenerating(true);
+    try {
+      const filename = await handleGenerateReport(fmt);
+      if (filename) {
+        const response = await api.get(`/reports/${filename}/download`, { responseType: 'blob' });
+        const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(blobUrl);
+      }
+    } catch (err) {
+      console.error('Error descargando archivo:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
   };
 
   const handleChat = useCallback(async (e: React.FormEvent) => {
@@ -68,7 +190,7 @@ export default function ReportesPage() {
       const res = await api.post('/gemini/chat', { message: userMsg });
       setMessages(prev => [...prev, { role: 'bot', text: res.data.reply }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'bot', text: 'Error al conectar con el asistente de IA. Verifica la configuración de GEMINI_API_KEY.' }]);
+      setMessages(prev => [...prev, { role: 'bot', text: 'Error al conectar con el asistente de IA. Verifica tu API Key de Gemini.' }]);
     } finally {
       setChatLoading(false);
     }
@@ -76,114 +198,501 @@ export default function ReportesPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Reportes e Inteligencia Artificial</h2>
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Módulo de Reportes y Validación Técnica
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Previsualización A4 en tiempo real, validación estadística Q1 y exportación profesional (PDF, DOCX, XLSX).
+          </p>
+        </div>
+        
+        {/* Navigation Tabs */}
+        <div className="flex gap-2 bg-muted p-1 rounded-lg border border-border">
+          <Button
+            size="sm"
+            variant={activeTab === 'preview' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('preview')}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Previsualizador A4
+          </Button>
+          <Button
+            size="sm"
+            variant={activeTab === 'chat' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('chat')}
+            className="gap-2"
+          >
+            <Bot className="h-4 w-4" />
+            Asistente M-11 IA
+          </Button>
+        </div>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Report Generator */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Generador de Reportes PDF
-            </CardTitle>
-            <CardDescription>
-              Genera un reporte de las últimas 50 alertas y eventos de seguridad del turno actual.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
-              <p className="text-sm font-medium">El reporte incluirá:</p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Resumen de alertas por nivel de riesgo</li>
-                <li>Tabla cronológica de eventos</li>
-                <li>Estadísticas del turno</li>
-                <li>Fecha y hora de generación</li>
-              </ul>
-            </div>
+      {activeTab === 'preview' && (
+        <div className="grid gap-6 lg:grid-cols-12">
+          {/* Configurator Side Panel (4 cols) */}
+          <Card className="lg:col-span-4 h-fit border-border bg-card shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Sliders className="h-4 w-4 text-primary" />
+                Panel de Configuración en Vivo
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Modifique los parámetros para actualizar la Hoja A4 en tiempo real.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Evaluador / Responsable</label>
+                <Input
+                  value={evaluatorName}
+                  onChange={(e) => setEvaluatorName(e.target.value)}
+                  className="bg-background border-border text-sm"
+                  placeholder="Nombre del evaluador..."
+                />
+              </div>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={() => handleGenerateReport('pdf')}
-                disabled={generating}
-                className="w-full flex-1"
-              >
-                {generating ? (
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                ) : (
-                  <FileText className="mr-2 h-4 w-4" />
-                )}
-                PDF
-              </Button>
-              <Button
-                onClick={() => handleGenerateReport('excel')}
-                disabled={generating}
-                className="w-full flex-1"
-                variant="outline"
-              >
-                {generating ? (
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                ) : (
-                  <FileText className="mr-2 h-4 w-4 text-green-600" />
-                )}
-                Excel
-              </Button>
-              <Button
-                onClick={() => handleGenerateReport('word')}
-                disabled={generating}
-                className="w-full flex-1"
-                variant="outline"
-              >
-                {generating ? (
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                ) : (
-                  <FileText className="mr-2 h-4 w-4 text-blue-600" />
-                )}
-                Word
-              </Button>
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Notas Técnicas / Observaciones</label>
+                <textarea
+                  value={technicalNotes}
+                  onChange={(e) => setTechnicalNotes(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Escriba las conclusiones técnicas..."
+                />
+              </div>
 
-            {generatedFile && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-emerald-400" />
-                  <div>
-                    <p className="text-sm font-medium text-emerald-400">Reporte generado</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[180px]">{generatedFile}</p>
-                  </div>
+              <div className="space-y-3 pt-2 border-t border-border">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-semibold text-muted-foreground">Opciones del Reporte Operativo</p>
+                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Modo Trabajador</Badge>
                 </div>
-                <Button size="sm" variant="outline" onClick={handleDownload} className="border-emerald-500/50 text-emerald-400">
-                  <Download className="h-4 w-4 mr-1" />
-                  Descargar
+                <p className="text-[11px] text-muted-foreground italic">
+                  * Por defecto para el trabajador, se ocultan las pruebas estadísticas y métricas complejas de ML (visibles en Streamlit).
+                </p>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs">
+                  <input
+                    type="checkbox"
+                    checked={includeFriedman}
+                    onChange={(e) => setIncludeFriedman(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span>Incluir Pruebas Estadísticas (Opcional)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs">
+                  <input
+                    type="checkbox"
+                    checked={includeMetrics}
+                    onChange={(e) => setIncludeMetrics(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span>Incluir Métricas del Modelo Campeón (Opcional)</span>
+                </label>
+              </div>
+
+              <div className="pt-3 border-t border-border space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Herramientas & Inspección de Datos</p>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePdfIframePreview}
+                  className="w-full justify-start gap-2 text-xs"
+                >
+                  <Eye className="h-4 w-4 text-blue-500" />
+                  Visor PDF en Modal (iframe)
+                </Button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setJsonModalOpen(true)}
+                    className="justify-start gap-1.5 text-xs"
+                  >
+                    <Code className="h-3.5 w-3.5 text-emerald-500" />
+                    Inspeccionar JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMarkdownModalOpen(true)}
+                    className="justify-start gap-1.5 text-xs"
+                  >
+                    <FileCode className="h-3.5 w-3.5 text-amber-500" />
+                    Ver Markdown
+                  </Button>
+                </div>
+              </div>
+
+              {/* Download Buttons Section */}
+              <div className="pt-4 border-t border-border space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Exportación Directa</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    onClick={() => handleDownloadFile('pdf')}
+                    disabled={generating}
+                    size="sm"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium"
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1" /> PDF
+                  </Button>
+
+                  <Button
+                    onClick={() => handleDownloadFile('word')}
+                    disabled={generating}
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-blue-500/30 text-blue-600 hover:bg-blue-500/10 font-medium"
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1" /> Word
+                  </Button>
+
+                  <Button
+                    onClick={() => handleDownloadFile('excel')}
+                    disabled={generating}
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-medium"
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1" /> Excel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* A4 Live Document Sheet Viewer (8 cols) */}
+          <div className="lg:col-span-8 space-y-3">
+            {/* Toolbar for A4 Document */}
+            <div className="flex items-center justify-between bg-card border border-border px-4 py-2 rounded-lg shadow-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
+                  <ShieldCheck className="h-3.5 w-3.5" /> HOJA A4 VISTA PREVIA EN VIVO
+                </Badge>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  (210 mm x 297 mm)
+                </span>
+              </div>
+
+              {/* Zoom & FullScreen Controls */}
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setZoomLevel(prev => Math.max(prev - 10, 50))}
+                  title="Alejar Zoom"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-xs font-mono w-10 text-center">{zoomLevel}%</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setZoomLevel(prev => Math.min(prev + 10, 150))}
+                  title="Acercar Zoom"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setZoomLevel(100)}
+                  title="Restablecer Zoom"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+
+                <div className="h-4 w-px bg-border mx-1" />
+
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setIsFullScreen(!isFullScreen)}
+                  title={isFullScreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
+                >
+                  {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
 
-        {/* AI Chatbot */}
-        <Card className="flex flex-col min-h-[500px]">
+            {/* A4 Sheet Container */}
+            <div className={`overflow-auto flex justify-center p-4 bg-muted/40 rounded-lg border border-border min-h-[750px] ${
+              isFullScreen ? 'fixed inset-0 z-50 bg-background p-8 rounded-none border-none overflow-y-auto' : ''
+            }`}>
+              {isFullScreen && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setIsFullScreen(false)}
+                  className="fixed top-4 right-6 z-50 gap-2 shadow-lg"
+                >
+                  <Minimize2 className="h-4 w-4" /> Salir de Pantalla Completa
+                </Button>
+              )}
+
+              {/* The Styled A4 Paper */}
+              <div
+                style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}
+                className="transition-transform duration-150 ease-out bg-white text-slate-900 shadow-2xl rounded-sm p-8 border border-slate-300 w-[794px] min-h-[1123px] font-sans text-xs space-y-6 select-text"
+              >
+                {/* Header Section */}
+                <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
+                  <div>
+                    <h1 className="text-xl font-bold tracking-tight text-slate-950 uppercase">
+                      SISTEMA M-11 — GEMELO DIGITAL Y PREVENCIÓN DE RIESGOS
+                    </h1>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Informe Técnico de Alerta Temprana y Evaluación de Simulaciones
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Institución: Minería Subterránea M-11 | Fecha: {new Date().toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2.5 py-1 bg-slate-900 text-white font-mono text-[10px] uppercase font-bold rounded">
+                      FORMATO Q1 / OFICIAL
+                    </span>
+                    <p className="text-[11px] text-slate-600 mt-2 font-medium">
+                      Evaluador: <span className="text-slate-900 font-bold">{evaluatorName || 'No asignado'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resumen Ejecutivo KPI Grid */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-900 border-l-4 border-slate-900 pl-2">
+                    1. RESUMEN EJECUTIVO DE EVALUACIONES
+                  </h3>
+                  <div className="grid grid-cols-4 gap-3 text-center">
+                    <div className="p-2.5 bg-slate-100 rounded border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">Total Registros</p>
+                      <p className="text-lg font-extrabold text-slate-900">20</p>
+                    </div>
+                    <div className="p-2.5 bg-red-50 rounded border border-red-200">
+                      <p className="text-[10px] text-red-600 font-bold uppercase">Riesgo Alto 🔴</p>
+                      <p className="text-lg font-extrabold text-red-700">7 <span className="text-xs font-normal">(35%)</span></p>
+                    </div>
+                    <div className="p-2.5 bg-amber-50 rounded border border-amber-200">
+                      <p className="text-[10px] text-amber-600 font-bold uppercase">Riesgo Medio 🟡</p>
+                      <p className="text-lg font-extrabold text-amber-700">12 <span className="text-xs font-normal">(60%)</span></p>
+                    </div>
+                    <div className="p-2.5 bg-emerald-50 rounded border border-emerald-200">
+                      <p className="text-[10px] text-emerald-600 font-bold uppercase">Riesgo Bajo 🟢</p>
+                      <p className="text-lg font-extrabold text-emerald-700">1 <span className="text-xs font-normal">(5%)</span></p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Technical Notes */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-900 border-l-4 border-slate-900 pl-2">
+                    2. NOTAS TÉCNICAS Y OBSERVACIONES EN TIEMPO REAL
+                  </h3>
+                  <div className="p-3 bg-slate-50 rounded border border-slate-200 text-slate-700 italic leading-relaxed text-xs">
+                    "{technicalNotes || 'Sin observaciones adicionales grabadas.'}"
+                  </div>
+                </div>
+
+                {/* Sample Telemetry Table */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-900 border-l-4 border-slate-900 pl-2">
+                    3. MUESTRA RELEVANTE DE ALERTAS Y EVENTOS TELEMÉTRICOS
+                  </h3>
+                  <table className="w-full text-[11px] border-collapse border border-slate-300">
+                    <thead>
+                      <tr className="bg-slate-900 text-white font-semibold">
+                        <th className="p-1.5 border border-slate-400 text-center">ID</th>
+                        <th className="p-1.5 border border-slate-400 text-left">Entidad / Trabajador</th>
+                        <th className="p-1.5 border border-slate-400 text-center">Distancia 3D</th>
+                        <th className="p-1.5 border border-slate-400 text-center">TTC (s)</th>
+                        <th className="p-1.5 border border-slate-400 text-center">Fatiga</th>
+                        <th className="p-1.5 border border-slate-400 text-center">Nivel Riesgo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      <tr>
+                        <td className="p-1.5 text-center font-mono font-medium">#1001</td>
+                        <td className="p-1.5">Operador Frente Norte #1</td>
+                        <td className="p-1.5 text-center font-mono">3.20 m</td>
+                        <td className="p-1.5 text-center font-mono">1.10 s</td>
+                        <td className="p-1.5 text-center font-mono">0.82</td>
+                        <td className="p-1.5 text-center font-bold text-red-600 bg-red-50">ALTO 🔴</td>
+                      </tr>
+                      <tr>
+                        <td className="p-1.5 text-center font-mono font-medium">#1002</td>
+                        <td className="p-1.5">Operador Maquinaria #2</td>
+                        <td className="p-1.5 text-center font-mono">11.50 m</td>
+                        <td className="p-1.5 text-center font-mono">3.40 s</td>
+                        <td className="p-1.5 text-center font-mono">0.45</td>
+                        <td className="p-1.5 text-center font-bold text-amber-600 bg-amber-50">MEDIO 🟡</td>
+                      </tr>
+                      <tr>
+                        <td className="p-1.5 text-center font-mono font-medium">#1003</td>
+                        <td className="p-1.5">Técnico Mantenimiento #3</td>
+                        <td className="p-1.5 text-center font-mono">38.40 m</td>
+                        <td className="p-1.5 text-center font-mono">7.20 s</td>
+                        <td className="p-1.5 text-center font-mono">0.12</td>
+                        <td className="p-1.5 text-center font-bold text-emerald-600 bg-emerald-50">BAJO 🟢</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 4. Physical Visualizations & Telemetry Charts */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-900 border-l-4 border-slate-900 pl-2">
+                    4. VISUALIZACIONES FÍSICAS Y GRÁFICOS TELEMÉTRICOS
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded border border-slate-200">
+                    <div className="space-y-1.5 bg-white p-2.5 rounded border border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-700 uppercase text-center">Distribución de Alertas por Riesgo</p>
+                      <div className="space-y-1.5 pt-1">
+                        <div>
+                          <div className="flex justify-between text-[10px] text-slate-600 font-medium mb-0.5"><span>Riesgo Alto 🔴</span><span>7 (35%)</span></div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div className="bg-red-500 h-full rounded-full w-[35%]" /></div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[10px] text-slate-600 font-medium mb-0.5"><span>Riesgo Medio 🟡</span><span>12 (60%)</span></div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div className="bg-amber-500 h-full rounded-full w-[60%]" /></div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[10px] text-slate-600 font-medium mb-0.5"><span>Riesgo Bajo 🟢</span><span>1 (5%)</span></div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full rounded-full w-[5%]" /></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 bg-white p-2.5 rounded border border-slate-200 flex flex-col justify-between">
+                      <p className="text-[10px] font-bold text-slate-700 uppercase text-center">Matriz Umbral de Proximidad & Fatiga</p>
+                      <div className="grid grid-cols-2 gap-2 text-center text-[10px] pt-1">
+                        <div className="p-1.5 bg-slate-100 rounded border border-slate-200">
+                          <span className="block text-slate-500 font-semibold">Distancia Umbral</span>
+                          <span className="font-mono font-bold text-slate-900">&lt; 5.0 m</span>
+                        </div>
+                        <div className="p-1.5 bg-slate-100 rounded border border-slate-200">
+                          <span className="block text-slate-500 font-semibold">TTC Crítico</span>
+                          <span className="font-mono font-bold text-slate-900">&lt; 2.5 s</span>
+                        </div>
+                        <div className="p-1.5 bg-slate-100 rounded border border-slate-200">
+                          <span className="block text-slate-500 font-semibold">Índice Fatiga Max</span>
+                          <span className="font-mono font-bold text-slate-900">0.85 / 1.0</span>
+                        </div>
+                        <div className="p-1.5 bg-slate-100 rounded border border-slate-200">
+                          <span className="block text-slate-500 font-semibold">Gas CO Max</span>
+                          <span className="font-mono font-bold text-slate-900">45.0 PPM</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Champion Model Metrics Section (Optional) */}
+                {includeMetrics && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-900 border-l-4 border-slate-900 pl-2">
+                      4. RENDIMIENTO DEL MODELO CAMPEÓN (RandomForest)
+                    </h3>
+                    <table className="w-full text-[11px] border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-800 text-white font-semibold">
+                          <th className="p-1.5 border border-slate-400 text-left">Métrica de Evaluación</th>
+                          <th className="p-1.5 border border-slate-400 text-center">Valor Obtenido (Test Set)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-slate-50"><td className="p-1.5 border">Exactitud (Accuracy)</td><td className="p-1.5 border text-center font-bold text-slate-900">99.85%</td></tr>
+                        <tr><td className="p-1.5 border">F1-Score Macro</td><td className="p-1.5 border text-center font-bold text-slate-900">0.9982</td></tr>
+                        <tr className="bg-slate-50"><td className="p-1.5 border">Precision Macro</td><td className="p-1.5 border text-center font-bold text-slate-900">0.9976</td></tr>
+                        <tr><td className="p-1.5 border">Recall Macro</td><td className="p-1.5 border text-center font-bold text-slate-900">0.9988</td></tr>
+                        <tr className="bg-slate-50"><td className="p-1.5 border">AUC-ROC (Multiclase OVR)</td><td className="p-1.5 border text-center font-bold text-slate-900">1.0000</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Friedman & Wilcoxon Section */}
+                {includeFriedman && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-900 border-l-4 border-slate-900 pl-2">
+                      5. ANEXO: VALIDACIÓN ESTADÍSTICA DE HIPÓTESIS (Wilcoxon & t-Student)
+                    </h3>
+                    <table className="w-full text-[10px] border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-900 text-white">
+                          <th className="p-1 border border-slate-400">Comparación de Modelos</th>
+                          <th className="p-1 border border-slate-400 text-center">Dif. Media F1</th>
+                          <th className="p-1 border border-slate-400 text-center">t-Statistic</th>
+                          <th className="p-1 border border-slate-400 text-center">p-value</th>
+                          <th className="p-1 border border-slate-400 text-center">Decisión H0</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="p-1 border font-medium">RandomForest vs XGBoost</td>
+                          <td className="p-1 border text-center font-mono">0.0012</td>
+                          <td className="p-1 border text-center font-mono">1.02</td>
+                          <td className="p-1 border text-center font-mono">0.36689</td>
+                          <td className="p-1 border text-center font-bold text-slate-700">No rechazar H0</td>
+                        </tr>
+                        <tr className="bg-slate-50">
+                          <td className="p-1 border font-medium">RandomForest vs MLP_NeuralNet</td>
+                          <td className="p-1 border text-center font-mono">0.0523</td>
+                          <td className="p-1 border text-center font-mono">26.40</td>
+                          <td className="p-1 border text-center font-mono text-red-600 font-bold">0.00001</td>
+                          <td className="p-1 border text-center font-bold text-red-600">Rechazar H0</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="pt-6 border-t border-slate-300 flex justify-between items-center text-[10px] text-slate-400">
+                  <p>Sistema M-11 Gemelo Digital de Seguridad Minera &copy; {new Date().getFullYear()}</p>
+                  <p>Documento de caracter técnico-científico</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: AI Chatbot */}
+      {activeTab === 'chat' && (
+        <Card className="flex flex-col min-h-[550px] border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              Asistente de Seguridad IA
-              <Badge variant="outline" className="text-xs ml-auto">Gemini</Badge>
+              Asistente de Seguridad e Inteligencia M-11
+              <Badge variant="outline" className="text-xs ml-auto border-primary/30 text-primary">Gemini 2.0</Badge>
             </CardTitle>
             <CardDescription>
-              Consulta sobre normativas de seguridad minera, procedimientos de emergencia y análisis de riesgos.
+              Consulta normativas de seguridad minera, interpretación de pruebas estadísticas de hipótesis o guías de intervención.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 gap-3">
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto space-y-3 max-h-[300px] pr-1">
+            <div className="flex-1 overflow-y-auto space-y-3 max-h-[380px] pr-2">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`rounded-2xl px-3 py-2 max-w-[85%] text-sm ${
+                  <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm ${
                     msg.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                      : 'bg-muted text-foreground rounded-tl-sm'
+                      : 'bg-muted text-foreground rounded-tl-sm border border-border'
                   }`}>
                     {msg.role === 'bot' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-1 prose-ul:my-1 prose-li:my-0">
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-1">
                         <ReactMarkdown>{msg.text}</ReactMarkdown>
                       </div>
                     ) : (
@@ -194,29 +703,124 @@ export default function ReportesPage() {
               ))}
               {chatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-muted-foreground">
-                    <span className="animate-pulse">Pensando...</span>
+                  <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-muted-foreground animate-pulse">
+                    Procesando respuesta...
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Input */}
-            <form onSubmit={handleChat} className="flex gap-2 mt-auto">
+            <form onSubmit={handleChat} className="flex gap-2 mt-auto pt-2">
               <Input
-                placeholder="¿Cuál es el protocolo ante una alerta ALTO?"
+                placeholder="¿Qué modelo demostró significancia estadística según la prueba de Wilcoxon?"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 disabled={chatLoading}
-                className="flex-1"
+                className="flex-1 bg-background"
               />
-              <Button type="submit" size="icon" disabled={!chatInput.trim() || chatLoading}>
-                <Send className="h-4 w-4" />
+              <Button type="submit" disabled={!chatInput.trim() || chatLoading}>
+                <Send className="h-4 w-4 mr-1" /> Enviar
               </Button>
             </form>
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {/* PDF Visor Modal (iframe) */}
+      {pdfModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-5xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/40">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-red-500" />
+                <h3 className="font-semibold text-base">Visor de PDF en Modal (iframe)</h3>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setPdfModalOpen(false)}>
+                ✕ Cerrar
+              </Button>
+            </div>
+
+            <div className="flex-1 bg-slate-900 p-2 flex items-center justify-center min-h-[600px]">
+              {loadingPdf ? (
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  <p className="text-sm">Compilando documento PDF dinámico...</p>
+                </div>
+              ) : pdfUrl ? (
+                <iframe
+                  src={pdfUrl}
+                  className="w-full h-[75vh] rounded border border-border"
+                  title="Vista Previa de Reporte PDF"
+                />
+              ) : (
+                <p className="text-sm text-red-400">No se pudo cargar la vista previa del PDF.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JSON Inspection Modal */}
+      {jsonModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-3xl rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/40">
+              <div className="flex items-center gap-2">
+                <Code className="h-5 w-5 text-emerald-500" />
+                <h3 className="font-semibold text-base">Estructura de Metadata JSON</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopyToClipboard(JSON.stringify(mockMetadata, null, 2))}
+                  className="gap-1.5 text-xs"
+                >
+                  {copiedText ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedText ? '¡Copiado!' : 'Copiar JSON'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setJsonModalOpen(false)}>
+                  ✕ Cerrar
+                </Button>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[65vh] bg-slate-950 text-slate-200 font-mono text-xs rounded-b-xl">
+              <pre>{JSON.stringify(mockMetadata, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Markdown Inspection Modal */}
+      {markdownModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-3xl rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/40">
+              <div className="flex items-center gap-2">
+                <FileCode className="h-5 w-5 text-amber-500" />
+                <h3 className="font-semibold text-base">Resumen Formateado en Markdown</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopyToClipboard(generateMarkdownContent())}
+                  className="gap-1.5 text-xs"
+                >
+                  {copiedText ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedText ? '¡Copiado!' : 'Copiar Markdown'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setMarkdownModalOpen(false)}>
+                  ✕ Cerrar
+                </Button>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[65vh] bg-slate-950 text-slate-200 font-mono text-xs rounded-b-xl whitespace-pre-wrap">
+              {generateMarkdownContent()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

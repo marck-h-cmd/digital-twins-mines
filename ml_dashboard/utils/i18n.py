@@ -1,24 +1,15 @@
-import json
-import os
 import streamlit as st
+from utils.translations import get_text, get_current_lang, init_language, TRANSLATIONS
 
 def load_translation(lang_code):
-    locales_dir = os.path.join(os.path.dirname(__file__), '..', 'locales')
-    file_path = os.path.join(locales_dir, f"{lang_code}.json")
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        # Fallback to English
-        with open(os.path.join(locales_dir, 'en.json'), 'r', encoding='utf-8') as f:
-            return json.load(f)
+    return TRANSLATIONS.get(lang_code, TRANSLATIONS["es"])
 
 def init_i18n():
-    if 'lang' not in st.session_state:
-        st.session_state.lang = 'es' # Default to Spanish
-    if 't' not in st.session_state:
-        st.session_state.t = load_translation(st.session_state.lang)
+    init_language()
+    current = get_current_lang()
+    st.session_state.t = load_translation(current)
 
 def change_lang(lang_code):
+    st.session_state.language = lang_code
     st.session_state.lang = lang_code
     st.session_state.t = load_translation(lang_code)

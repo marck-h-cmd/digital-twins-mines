@@ -43,10 +43,18 @@ async def get_user_for_download(
 @router.post("")
 async def create_report(
     format: str = Query("pdf", description="Report format: pdf, excel, or word"),
+    evaluator_name: Optional[str] = Query(None),
+    technical_notes: Optional[str] = Query(None),
+    include_friedman: bool = Query(True),
     current_user: User = Depends(get_current_user)
 ):
     try:
-        filepath = await report_generator.generate(fmt=format)
+        filepath = await report_generator.generate(
+            fmt=format,
+            evaluator_name=evaluator_name,
+            technical_notes=technical_notes,
+            include_friedman=include_friedman
+        )
         filename = os.path.basename(filepath)
         return {"message": "Reporte generado", "filename": filename, "format": format}
     except Exception as e:

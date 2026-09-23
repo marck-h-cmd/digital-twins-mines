@@ -1,8 +1,6 @@
-'use client';
-
 import { Html } from '@react-three/drei';
 import { useRef } from 'react';
-import { Mesh } from 'three';
+import { Mesh, Group, MathUtils } from 'three';
 import { useFrame } from '@react-three/fiber';
 
 interface MachineProps {
@@ -12,6 +10,7 @@ interface MachineProps {
 }
 
 export default function MachineModel({ position, riskLevel, label }: MachineProps) {
+  const groupRef = useRef<Group>(null);
   const haloRef = useRef<Mesh>(null);
 
   // Risk color
@@ -19,7 +18,14 @@ export default function MachineModel({ position, riskLevel, label }: MachineProp
   if (riskLevel === 'MEDIO') riskColor = '#eab308';
   if (riskLevel === 'ALTO') riskColor = '#ef4444';
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
+    // Smooth position LERP animation
+    if (groupRef.current) {
+      groupRef.current.position.x = MathUtils.lerp(groupRef.current.position.x, position[0], delta * 3.5);
+      groupRef.current.position.y = MathUtils.lerp(groupRef.current.position.y, position[1], delta * 3.5);
+      groupRef.current.position.z = MathUtils.lerp(groupRef.current.position.z, position[2], delta * 3.5);
+    }
+
     if (haloRef.current && (riskLevel === 'MEDIO' || riskLevel === 'ALTO')) {
       const speed = riskLevel === 'ALTO' ? 8 : 3;
       const pulse = Math.sin(clock.elapsedTime * speed);
@@ -30,7 +36,7 @@ export default function MachineModel({ position, riskLevel, label }: MachineProp
   });
 
   return (
-    <group position={position}>
+    <group ref={groupRef} position={position}>
       {/* Risk halo on floor */}
       {riskLevel !== 'BAJO' && (
         <mesh ref={haloRef} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -82,17 +88,40 @@ export default function MachineModel({ position, riskLevel, label }: MachineProp
       {/* Status light on top - color indicates risk */}
       <mesh position={[0.5, 1.65, 0]}>
         <sphereGeometry args={[0.12, 8, 8]} />
-        <meshStandardMaterial color={riskColor} emissive={riskColor} emissiveIntensity={0.8} />
+        <meshStandardMaterial color={riskColor} emissive={riskColor} emissiveIntensity={1.5} />
       </mesh>
+      <pointLight position={[0.5, 1.8, 0]} color={riskColor} intensity={riskLevel === 'ALTO' ? 4.0 : 1.5} distance={10} />
+
+      {/* Faros Frontales del LHD Loader proyectados hacia el socavón */}
+      <spotLight
+        position={[-1.8, 0.8, 0.3]}
+        target-position={[-10, 0, 0.3]}
+        angle={0.5}
+        penumbra={0.4}
+        intensity={5.0}
+        color="#fffbeb"
+        distance={25}
+        castShadow
+      />
+      <spotLight
+        position={[-1.8, 0.8, -0.3]}
+        target-position={[-10, 0, -0.3]}
+        angle={0.5}
+        penumbra={0.4}
+        intensity={5.0}
+        color="#fffbeb"
+        distance={25}
+      />
 
       {/* Label */}
-      <Html position={[0, 2.2, 0]} center distanceFactor={8}>
-        <div className={`px-2 py-1 rounded text-xs font-bold text-white shadow-lg whitespace-nowrap ${
-          riskLevel === 'ALTO' ? 'bg-red-600' :
-          riskLevel === 'MEDIO' ? 'bg-amber-500 text-black' :
-          'bg-blue-600'
+      <Html position={[0, 2.3, 0]} center distanceFactor={8}>
+        <div className={`px-2.5 py-1 rounded-md text-xs font-extrabold text-white shadow-2xl backdrop-blur-sm border whitespace-nowrap flex items-center gap-1.5 ${
+          riskLevel === 'ALTO' ? 'bg-red-600/90 border-red-400' :
+          riskLevel === 'MEDIO' ? 'bg-amber-500/90 border-amber-300 text-black' :
+          'bg-blue-600/90 border-blue-400'
         }`}>
-          {label}
+          <span>🚜</span>
+          <span>{label}</span>
         </div>
       </Html>
     </group>

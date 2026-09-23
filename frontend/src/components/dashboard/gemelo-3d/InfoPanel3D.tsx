@@ -13,19 +13,19 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
   const pf = activeAlert?.particle_filter_30s;
   const hmmState = activeAlert?.hmm_state || 'SEGURO';
 
-  // Sincronización estricta de umbrales en UI (<50% BAJO, 50-79% MEDIO, >=80% ALTO)
+  // Utilizar directamente el nivel de riesgo predicho por el modelo ML del backend (o fallback por score si no está disponible)
   const rawScore = activeAlert?.risk_score != null 
     ? (activeAlert.risk_score > 1 ? activeAlert.risk_score : activeAlert.risk_score * 100)
     : 0;
 
-  let calculatedRiskLevel = 'BAJO';
-  let riskBadgeStyle = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold';
+  const calculatedRiskLevel = activeAlert?.risk_level || activeAlert?.level || (
+    rawScore >= 80 ? 'ALTO' : rawScore >= 50 ? 'MEDIO' : 'BAJO'
+  );
 
-  if (rawScore >= 80) {
-    calculatedRiskLevel = 'ALTO';
+  let riskBadgeStyle = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold';
+  if (calculatedRiskLevel === 'ALTO') {
     riskBadgeStyle = 'bg-red-600 hover:bg-red-700 text-white font-bold';
-  } else if (rawScore >= 50) {
-    calculatedRiskLevel = 'MEDIO';
+  } else if (calculatedRiskLevel === 'MEDIO') {
     riskBadgeStyle = 'bg-amber-500 hover:bg-amber-600 text-black font-bold';
   }
 
@@ -58,7 +58,7 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
               {/* Nivel de Riesgo ML y HMM */}
               <div className="flex justify-between items-center bg-muted/40 p-2 rounded-lg">
                 <div>
-                  <span className="text-xs text-muted-foreground block">Riesgo ML (XGBoost):</span>
+                  <span className="text-xs text-muted-foreground block">Riesgo ML ({activeAlert?.model_name || 'RandomForest'}):</span>
                   <Badge className={riskBadgeStyle}>
                     {calculatedRiskLevel} ({rawScore.toFixed(1)}%)
                   </Badge>
@@ -66,9 +66,9 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
                 <div className="text-right">
                   <span className="text-xs text-muted-foreground block">Estado Oculto (HMM):</span>
                   <Badge className={
-                    hmmState === 'INMINENTE'
+                    hmmState.includes('INMINENTE') || hmmState === 'INMINENTE'
                       ? 'bg-red-600 hover:bg-red-700 text-white font-bold'
-                      : hmmState === 'INCIPIENTE'
+                      : hmmState.includes('AMBIENTAL') || hmmState.includes('MANIOBRA') || hmmState === 'INCIPIENTE'
                       ? 'bg-amber-500 hover:bg-amber-600 text-black font-bold'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold'
                   }>
@@ -76,6 +76,31 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
                   </Badge>
                 </div>
               </div>
+
+              {/* Barometric Proximity & TTC Bar */}
+              {activeAlert.distance_3d != null && (
+                <div className="bg-muted/50 border border-primary/20 p-2.5 rounded-lg space-y-1.5">
+                  <div className="flex justify-between items-center text-xs font-semibold">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      📏 Distancia 3D LHD-Operador:
+                    </span>
+                    <span className={activeAlert.distance_3d < 15 ? 'text-red-400 font-extrabold font-mono' : 'text-emerald-400 font-mono'}>
+                      {activeAlert.distance_3d.toFixed(1)}m (TTC: {(activeAlert.ttc || activeAlert.distance_3d / 5).toFixed(1)}s)
+                    </span>
+                  </div>
+                  {/* Proximity progress bar (0m to 50m) */}
+                  <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 rounded-full ${
+                        activeAlert.distance_3d < 15 ? 'bg-red-500 animate-pulse' :
+                        activeAlert.distance_3d < 30 ? 'bg-amber-500' :
+                        'bg-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(5, (activeAlert.distance_3d / 50) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Predicción Filtro de Partículas +30s */}
               {pf && (

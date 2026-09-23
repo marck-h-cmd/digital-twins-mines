@@ -1,17 +1,23 @@
 {
   "proposed_model": "RandomForest",
-  "mean_f1_proposed": 0.9969190289301662,
+  "mean_f1_proposed": 0.6484042494922881,
+  "statistical_tests": {
+    "friedman_stat": 14.719999999999999,
+    "friedman_p": 0.005318619121741908,
+    "h0_rejected": true
+  },
   "comparisons": {
     "XGBoost": {
-      "comparison_model_f1": 0.9957372360679543,
-      "mean_f1_difference": 0.0011817928622118723,
+      "comparison_model_f1": 0.646305188892477,
+      "mean_f1_difference": 0.0020990605998111533,
       "ci_95_percent": [
-        -0.0020462553043367566,
-        0.004409841028760501
+        -0.008019230074349772,
+        0.012217351273972079
       ],
+      "cohens_d": 0.25758579791439395,
       "t_student": {
-        "t_statistic": 1.0164603619140016,
-        "p_value": 0.36689215215909077
+        "t_statistic": 0.5759793541751084,
+        "p_value": 0.5954842663502762
       },
       "wilcoxon_signed_rank": {
         "w_statistic": 6.0,
@@ -21,15 +27,16 @@
       "conclusion": "H0 No Rechazada: Rendimientos equivalentes (p >= 0.05)"
     },
     "MLP_NeuralNet": {
-      "comparison_model_f1": 0.9446504902925403,
-      "mean_f1_difference": 0.052268538637625726,
+      "comparison_model_f1": 0.6124947012651621,
+      "mean_f1_difference": 0.03590954822712602,
       "ci_95_percent": [
-        0.04677064936780925,
-        0.0577664279074422
+        0.021049826563001556,
+        0.05076926989125048
       ],
+      "cohens_d": 3.0005671864656276,
       "t_student": {
-        "t_statistic": 26.39571681681438,
-        "p_value": 1.2242589009295287e-05
+        "t_statistic": 6.709472199992429,
+        "p_value": 0.002568450495160831
       },
       "wilcoxon_signed_rank": {
         "w_statistic": 0.0,
@@ -39,33 +46,16 @@
       "conclusion": "H0 Rechazada: El modelo propuesto es estad\u00edsticamente superior (p < 0.05)"
     },
     "Stacking_Ensemble": {
-      "comparison_model_f1": 0.9956203111738695,
-      "mean_f1_difference": 0.0012987177562965523,
+      "comparison_model_f1": 0.6159550970610203,
+      "mean_f1_difference": 0.03244915243126793,
       "ci_95_percent": [
-        -0.00047517161860121835,
-        0.003072607131194323
+        0.012799654301523591,
+        0.052098650561012275
       ],
+      "cohens_d": 2.05048210799549,
       "t_student": {
-        "t_statistic": 2.032718955606143,
-        "p_value": 0.11186607138136875
-      },
-      "wilcoxon_signed_rank": {
-        "w_statistic": 2.0,
-        "p_value": 0.1875
-      },
-      "h0_rejected": false,
-      "conclusion": "H0 No Rechazada: Rendimientos equivalentes (p >= 0.05)"
-    },
-    "Voting_Ensemble": {
-      "comparison_model_f1": 0.9951500717217024,
-      "mean_f1_difference": 0.0017689572084636173,
-      "ci_95_percent": [
-        0.00030164247625868654,
-        0.003236271940668548
-      ],
-      "t_student": {
-        "t_statistic": 3.34721138890414,
-        "p_value": 0.028642987717040994
+        "t_statistic": 4.58501738012498,
+        "p_value": 0.010144918711427383
       },
       "wilcoxon_signed_rank": {
         "w_statistic": 0.0,
@@ -73,6 +63,25 @@
       },
       "h0_rejected": true,
       "conclusion": "H0 Rechazada: El modelo propuesto es estad\u00edsticamente superior (p < 0.05)"
+    },
+    "Voting_Ensemble": {
+      "comparison_model_f1": 0.640752510829238,
+      "mean_f1_difference": 0.007651738663050156,
+      "ci_95_percent": [
+        -0.00818818857484029,
+        0.023491665900940602
+      ],
+      "cohens_d": 0.5998063172188235,
+      "t_student": {
+        "t_statistic": 1.341207698635092,
+        "p_value": 0.25094368913266213
+      },
+      "wilcoxon_signed_rank": {
+        "w_statistic": 3.0,
+        "p_value": 0.3125
+      },
+      "h0_rejected": false,
+      "conclusion": "H0 No Rechazada: Rendimientos equivalentes (p >= 0.05)"
     }
   }
 }
