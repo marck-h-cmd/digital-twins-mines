@@ -2,8 +2,9 @@ import { Html } from '@react-three/drei';
 import { useRef } from 'react';
 import { Mesh, Group, MathUtils } from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Vector3, Group } from 'three';
+import { Vector3 } from 'three';
 import { useMemo } from 'react';
+import { useI18nStore } from '@/store/i18nStore';
 
 interface WorkerProps {
   position: [number, number, number];
@@ -16,6 +17,7 @@ interface WorkerProps {
 export default function WorkerAvatar({ position, riskLevel, label, bpm = 85, fatigueIndex = 0.2 }: WorkerProps) {
   const groupRef = useRef<Group>(null);
   const haloRef = useRef<Mesh>(null);
+  const { t } = useI18nStore();
 
   // Target position for smooth interpolation
   const targetPosition = useMemo(() => new Vector3(...position), [position]);
@@ -122,8 +124,8 @@ export default function WorkerAvatar({ position, riskLevel, label, bpm = 85, fat
           <div className="text-[10px] font-medium opacity-95 flex items-center gap-1 border-t border-white/20 pt-0.5 w-full justify-center">
             <span>❤️ {Math.round(bpm)} BPM</span>
             <span>|</span>
-            <span>⚡ Fatiga: {fatigueIndex.toFixed(2)}</span>
-            {isFatigued && <span className="text-red-200 animate-pulse font-extrabold">⚠️ ALERTA</span>}
+            <span>⚡ {t('avatar.fatigue')}: {fatigueIndex.toFixed(2)}</span>
+            {isFatigued && <span className="text-red-200 animate-pulse font-extrabold">⚠️ {t('avatar.alert')}</span>}
           </div>
         </div>
       </Html>

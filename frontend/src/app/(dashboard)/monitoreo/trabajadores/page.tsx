@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useI18nStore } from '@/store/i18nStore';
 
 interface Worker {
   id: number;
@@ -18,6 +19,7 @@ interface Worker {
 export default function WorkersPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18nStore();
 
   useEffect(() => {
     const fetchWorkers = async () => {
@@ -35,25 +37,25 @@ export default function WorkersPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Trabajadores</h2>
+      <h2 className="text-3xl font-bold tracking-tight">{t('workersPage.title')}</h2>
       
       <Card>
         <CardHeader>
-          <CardTitle>Listado de Personal en Terreno</CardTitle>
+          <CardTitle>{t('workersPage.listTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p>Cargando datos...</p>
+            <p>{t('workersPage.loading')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>{t('workersPage.id')}</TableHead>
+                  <TableHead>{t('workersPage.code')}</TableHead>
+                  <TableHead>{t('workersPage.name')}</TableHead>
+                  <TableHead>{t('workersPage.role')}</TableHead>
+                  <TableHead>{t('workersPage.area')}</TableHead>
+                  <TableHead>{t('workersPage.status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -66,16 +68,16 @@ export default function WorkersPage() {
                     <TableCell>{worker.area}</TableCell>
                     <TableCell>
                       {worker.is_active ? (
-                        <Badge variant="default" className="bg-emerald-600">Activo</Badge>
+                        <Badge variant="default" className="bg-emerald-600">{t('workersPage.active')}</Badge>
                       ) : (
-                        <Badge variant="secondary">Inactivo</Badge>
+                        <Badge variant="secondary">{t('workersPage.inactive')}</Badge>
                       )}
                     </TableCell>
                   </TableRow>
                 ))}
                 {workers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">No hay trabajadores registrados.</TableCell>
+                    <TableCell colSpan={6} className="text-center py-4">{t('workersPage.empty')}</TableCell>
                   </TableRow>
                 )}
               </TableBody>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { useI18nStore } from '@/store/i18nStore';
 import { Play, Loader2, CheckCircle2, AlertCircle, Radio } from 'lucide-react';
 
 interface SimulateButtonProps {
@@ -22,6 +23,7 @@ export function SimulateButton({
   const [isRunning, setIsRunning] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+  const { t } = useI18nStore();
 
   const handleSimulate = async () => {
     try {
@@ -80,10 +82,10 @@ export function SimulateButton({
         {showLabel && (
           <span>
             {loading
-              ? 'Iniciando...'
+              ? t('dashboard.starting')
               : isRunning
-              ? 'Simulando en Vivo...'
-              : '⚡ Simular Telemetría'}
+              ? t('dashboard.simulating')
+              : t('dashboard.simulateBtn')}
           </span>
         )}
       </Button>

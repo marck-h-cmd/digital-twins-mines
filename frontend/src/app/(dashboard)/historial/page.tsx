@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { useI18nStore } from '@/store/i18nStore';
 
 interface AlertLog {
   id: number;
@@ -19,6 +20,7 @@ interface AlertLog {
 export default function HistorialPage() {
   const [alerts, setAlerts] = useState<AlertLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t, translateMessage } = useI18nStore();
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -36,24 +38,24 @@ export default function HistorialPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Historial de Eventos</h2>
+      <h2 className="text-3xl font-bold tracking-tight">{t('historyPage.title')}</h2>
       
       <Card>
         <CardHeader>
-          <CardTitle>Registro Histórico de Alertas de Riesgo</CardTitle>
+          <CardTitle>{t('historyPage.listTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p>Cargando datos...</p>
+            <p>{t('workersPage.loading')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fecha / Hora</TableHead>
-                  <TableHead>Nivel de Riesgo</TableHead>
-                  <TableHead>Mensaje</TableHead>
-                  <TableHead>Interacción ID</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>{t('historyPage.date')}</TableHead>
+                  <TableHead>{t('historyPage.risk')}</TableHead>
+                  <TableHead>{t('historyPage.message')}</TableHead>
+                  <TableHead>{t('historyPage.interactionId')}</TableHead>
+                  <TableHead>{t('historyPage.status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -62,17 +64,17 @@ export default function HistorialPage() {
                     <TableCell>{format(new Date(alert.created_at), 'dd/MM/yyyy HH:mm:ss')}</TableCell>
                     <TableCell>
                       <Badge variant={alert.alert_level === 'ALTO' ? 'destructive' : 'default'} className={alert.alert_level === 'MEDIO' ? 'bg-amber-500 text-black' : ''}>
-                        {alert.alert_level}
+                        {alert.alert_level === 'ALTO' ? t('levels.high') : alert.alert_level === 'MEDIO' ? t('levels.medium') : t('levels.low')}
                       </Badge>
                     </TableCell>
-                    <TableCell>{alert.message}</TableCell>
+                    <TableCell>{translateMessage(alert.message)}</TableCell>
                     <TableCell>#{alert.interaction_id}</TableCell>
                     <TableCell>{alert.status}</TableCell>
                   </TableRow>
                 ))}
                 {alerts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">No hay eventos registrados.</TableCell>
+                    <TableCell colSpan={5} className="text-center py-4">{t('historyPage.empty')}</TableCell>
                   </TableRow>
                 )}
               </TableBody>

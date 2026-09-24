@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAlertStore } from '@/store/alertStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { useI18nStore } from '@/store/i18nStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SimulateButton } from '@/components/dashboard/SimulateButton';
@@ -37,6 +38,8 @@ export default function Dashboard() {
     alerts_today_medio: 0,
   });
   const [chartData, setChartData] = useState<any[]>([]);
+
+  const { t, translateMessage } = useI18nStore();
 
   const alerts = useAlertStore((s) => s.alerts);
   const addAlert = useAlertStore((s) => s.addAlert);
@@ -103,7 +106,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard General</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h2>
         <SimulateButton size="default" variant="default" />
       </div>
 
@@ -111,45 +114,45 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Trabajadores Activos</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.activeWorkers')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total_workers}</div>
-            <p className="text-xs text-muted-foreground">Personal registrado y activo</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.activeWorkersDesc')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maquinaria Operando</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.operatingMachinery')}</CardTitle>
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active_machines}</div>
-            <p className="text-xs text-muted-foreground">Equipos pesados en operación</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.operatingMachineryDesc')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas MEDIO Hoy</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.alertsMedioToday')}</CardTitle>
             <Activity className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-500">{stats.alerts_today_medio}</div>
-            <p className="text-xs text-muted-foreground">Riesgo intermedio detectado</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.alertsMedioTodayDesc')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas ALTO Hoy</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.alertsAltoToday')}</CardTitle>
             <Bell className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{stats.alerts_today_alto}</div>
-            <p className="text-xs text-muted-foreground">Requieren atención inmediata</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.alertsAltoTodayDesc')}</p>
           </CardContent>
         </Card>
       </div>
@@ -158,61 +161,61 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">BPM Trabajador</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.workerBpm')}</CardTitle>
             <Heart className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent className="pb-3">
             <div className="text-2xl font-bold">{activeAlert?.worker_bpm ? `${activeAlert.worker_bpm} bpm` : '--'}</div>
-            <p className="text-xs text-muted-foreground mb-2">Ritmo cardíaco actual</p>
+            <p className="text-xs text-muted-foreground mb-2">{t('dashboard.workerBpmDesc')}</p>
             <RealTimeChart data={alerts} dataKey="worker_bpm" baseColor="#f43f5e" />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Índice Fatiga</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.fatigueIndex')}</CardTitle>
             <Zap className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent className="pb-3">
             <div className="text-2xl font-bold">{activeAlert?.fatigue_index ? `${(activeAlert.fatigue_index * 100).toFixed(0)}%` : '--'}</div>
-            <p className="text-xs text-muted-foreground mb-2">Nivel de fatiga</p>
+            <p className="text-xs text-muted-foreground mb-2">{t('dashboard.fatigueIndexDesc')}</p>
             <RealTimeChart data={alerts} dataKey="fatigue_index" baseColor="#f97316" />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gas CO</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.gasCo')}</CardTitle>
             <Wind className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent className="pb-3">
             <div className="text-2xl font-bold">{activeAlert?.gas_co_ppm ? `${activeAlert.gas_co_ppm} ppm` : '--'}</div>
-            <p className="text-xs text-muted-foreground mb-2">Calidad del aire</p>
+            <p className="text-xs text-muted-foreground mb-2">{t('dashboard.gasCoDesc')}</p>
             <RealTimeChart data={alerts} dataKey="gas_co_ppm" baseColor="#10b981" />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Polvo (Densidad)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.dustDensity')}</CardTitle>
             <CloudFog className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeAlert?.dust_density_mg_m3 ? `${activeAlert.dust_density_mg_m3} mg/m³` : '--'}</div>
-            <p className="text-xs text-muted-foreground">Partículas en suspensión</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.dustDensityDesc')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Riesgo Futuro (30s)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.futureRisk')}</CardTitle>
             <BrainCircuit className="h-4 w-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
             <div className="text-lg font-bold truncate">
               {activeAlert?.particle_filter_30s?.early_warning_level?.replace('_30S', '') || '--'}
             </div>
-            <p className="text-xs text-muted-foreground">Filtro de Partículas</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.futureRiskDesc')}</p>
           </CardContent>
         </Card>
       </div>
@@ -221,7 +224,7 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Tendencia de Riesgo (Historial)</CardTitle>
+            <CardTitle>{t('dashboard.riskTrend')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px] pr-4">
             <ResponsiveContainer width="100%" height="100%">
@@ -260,14 +263,14 @@ export default function Dashboard() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              Alertas en Vivo
+              {t('dashboard.liveAlerts')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 overflow-y-auto max-h-[280px]">
             {recentAlerts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
                 <ShieldCheck className="h-10 w-10 mb-2 opacity-40" />
-                <p className="text-sm">Sin alertas recientes</p>
+                <p className="text-sm">{t('dashboard.noRecentAlerts')}</p>
               </div>
             ) : (
               recentAlerts.map((alert, i) => (
@@ -285,13 +288,13 @@ export default function Dashboard() {
                     }`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground truncate">{alert.message || 'Alerta de Proximidad'}</p>
+                    <p className="text-xs text-foreground truncate">{alert.message ? translateMessage(alert.message) : t('dashboard.proximityAlert')}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge
                         variant={alert.risk_level === 'ALTO' ? 'destructive' : 'default'}
                         className={`text-[10px] h-4 ${alert.risk_level === 'MEDIO' ? 'bg-amber-500 text-black' : ''}`}
                       >
-                        {alert.risk_level}
+                        {alert.risk_level === 'ALTO' ? t('levels.high') : alert.risk_level === 'MEDIO' ? t('levels.medium') : t('levels.low')}
                       </Badge>
                       <span className="text-[10px] text-muted-foreground">
                         {format(new Date(alert.timestamp), 'HH:mm:ss')}

@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Info } from 'lucide-react';
 import { SimulateButton } from '@/components/dashboard/SimulateButton';
+import { useI18nStore } from '@/store/i18nStore';
 
 interface InfoPanelProps {
   activeAlert: any | null;
 }
 
 export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
+  const { t, translateMessage } = useI18nStore();
   const pf = activeAlert?.particle_filter_30s;
   const hmmState = activeAlert?.hmm_state || 'SEGURO';
 
@@ -21,6 +23,15 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
   const calculatedRiskLevel = activeAlert?.risk_level || activeAlert?.level || (
     rawScore >= 80 ? 'ALTO' : rawScore >= 50 ? 'MEDIO' : 'BAJO'
   );
+  
+  const getTranslatedHmmState = (state: string) => {
+    if (state.includes('SEGURO')) return t('hmm.secure');
+    if (state.includes('INCIPIENTE')) return t('hmm.incipient');
+    if (state.includes('INMINENTE')) return t('hmm.imminent');
+    if (state.includes('AMBIENTAL')) return t('hmm.environmental');
+    if (state.includes('MANIOBRA')) return t('hmm.maneuver');
+    return state;
+  };
 
   let riskBadgeStyle = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold';
   if (calculatedRiskLevel === 'ALTO') {
@@ -36,35 +47,35 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
           <CardTitle className="text-base flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Info className="h-5 w-5 text-primary" />
-              Gemelo Digital & IA M-11
+              {t('digitalTwin.title')}
             </span>
             <Badge variant="outline" className="font-mono text-xs">
-              WS EN VIVO
+              {t('digitalTwin.liveWs')}
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-3 space-y-3">
           <div className="pt-1 pb-2 border-b border-border/50 flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Prueba de Telemetría:</span>
+            <span className="text-xs text-muted-foreground">{t('digitalTwin.telemetryTest')}</span>
             <SimulateButton size="xs" variant="secondary" />
           </div>
 
           {!activeAlert ? (
             <div className="text-xs text-muted-foreground">
-              🟢 Monitoreo continuo activo. Parámetros operativos y biométricos en rango normal.
+              {t('digitalTwin.normalMonitoring')}
             </div>
           ) : (
             <>
               {/* Nivel de Riesgo ML y HMM */}
               <div className="flex justify-between items-center bg-muted/40 p-2 rounded-lg">
                 <div>
-                  <span className="text-xs text-muted-foreground block">Riesgo ML ({activeAlert?.model_name || 'RandomForest'}):</span>
+                  <span className="text-xs text-muted-foreground block">{t('digitalTwin.mlRisk')} ({activeAlert?.model_name || 'RandomForest'}):</span>
                   <Badge className={riskBadgeStyle}>
-                    {calculatedRiskLevel} ({rawScore.toFixed(1)}%)
+                    {calculatedRiskLevel === 'ALTO' ? t('levels.high') : calculatedRiskLevel === 'MEDIO' ? t('levels.medium') : t('levels.low')} ({rawScore.toFixed(1)}%)
                   </Badge>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-muted-foreground block">Estado Oculto (HMM):</span>
+                  <span className="text-xs text-muted-foreground block">{t('digitalTwin.hmmState')}:</span>
                   <Badge className={
                     hmmState.includes('INMINENTE') || hmmState === 'INMINENTE'
                       ? 'bg-red-600 hover:bg-red-700 text-white font-bold'
@@ -72,7 +83,7 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
                       ? 'bg-amber-500 hover:bg-amber-600 text-black font-bold'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold'
                   }>
-                    {hmmState}
+                    {getTranslatedHmmState(hmmState)}
                   </Badge>
                 </div>
               </div>
@@ -82,7 +93,7 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
                 <div className="bg-muted/50 border border-primary/20 p-2.5 rounded-lg space-y-1.5">
                   <div className="flex justify-between items-center text-xs font-semibold">
                     <span className="text-muted-foreground flex items-center gap-1">
-                      📏 Distancia 3D LHD-Operador:
+                      {t('digitalTwin.distance3d')}
                     </span>
                     <span className={activeAlert.distance_3d < 15 ? 'text-red-400 font-extrabold font-mono' : 'text-emerald-400 font-mono'}>
                       {activeAlert.distance_3d.toFixed(1)}m (TTC: {(activeAlert.ttc || activeAlert.distance_3d / 5).toFixed(1)}s)
@@ -108,9 +119,9 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
                   <div className="flex items-center justify-between text-xs font-semibold text-amber-500">
                     <span className="flex items-center gap-1">
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      Filtro de Partículas (+30s):
+                      {t('digitalTwin.pf30s')}
                     </span>
-                    <span>{pf.collision_probability_30s}% riesgo</span>
+                    <span>{pf.collision_probability_30s}% {t('digitalTwin.risk')}</span>
                   </div>
                   <p className="text-[11px] text-foreground leading-tight">
                     {pf.suggested_action_30s}
@@ -121,24 +132,24 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
               {/* Telemetría Biométrica y Ambiental */}
               <div className="grid grid-cols-3 gap-1.5 text-[11px] bg-muted/30 p-2 rounded">
                 <div>
-                  <span className="text-muted-foreground block">Biometría</span>
+                  <span className="text-muted-foreground block">{t('digitalTwin.biometrics')}</span>
                   <span className="font-semibold">{activeAlert.worker_bpm ? `${Math.round(activeAlert.worker_bpm)} BPM` : '85 BPM'}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Índice Fatiga</span>
+                  <span className="text-muted-foreground block">{t('digitalTwin.fatigueIndex')}</span>
                   <span className={`font-semibold ${(activeAlert.fatigue_index || 0.2) > 0.5 ? 'text-red-500' : 'text-emerald-500'}`}>
                     {(activeAlert.fatigue_index || 0.2).toFixed(2)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Gas CO (ppm)</span>
+                  <span className="text-muted-foreground block">{t('digitalTwin.gasCo')}</span>
                   <span className="font-semibold">{activeAlert.gas_co_ppm ? `${activeAlert.gas_co_ppm.toFixed(1)} ppm` : '10 ppm'}</span>
                 </div>
               </div>
 
               {/* Mensaje original */}
               <div className="text-[11px] text-muted-foreground border-t pt-1 font-mono">
-                {activeAlert.message}
+                {translateMessage(activeAlert.message)}
               </div>
             </>
           )}

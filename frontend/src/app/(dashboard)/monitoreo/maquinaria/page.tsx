@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useI18nStore } from '@/store/i18nStore';
 
 interface Machine {
   id: number;
@@ -17,6 +18,7 @@ interface Machine {
 export default function MaquinariaPage() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18nStore();
 
   useEffect(() => {
     const fetchMachines = async () => {
@@ -35,11 +37,11 @@ export default function MaquinariaPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'OPERATING':
-        return <Badge className="bg-emerald-600">Operando</Badge>;
+        return <Badge className="bg-emerald-600">{t('machineryPage.operating')}</Badge>;
       case 'IDLE':
-        return <Badge variant="secondary">Detenida</Badge>;
+        return <Badge variant="secondary">{t('machineryPage.idle')}</Badge>;
       case 'MAINTENANCE':
-        return <Badge variant="destructive">Mantenimiento</Badge>;
+        return <Badge variant="destructive">{t('machineryPage.maintenance')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -47,24 +49,24 @@ export default function MaquinariaPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Maquinaria</h2>
+      <h2 className="text-3xl font-bold tracking-tight">{t('machineryPage.title')}</h2>
       
       <Card>
         <CardHeader>
-          <CardTitle>Listado de Equipos Pesados</CardTitle>
+          <CardTitle>{t('machineryPage.listTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p>Cargando datos...</p>
+            <p>{t('workersPage.loading')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Estado Actual</TableHead>
+                  <TableHead>{t('workersPage.id')}</TableHead>
+                  <TableHead>{t('workersPage.code')}</TableHead>
+                  <TableHead>{t('machineryPage.type')}</TableHead>
+                  <TableHead>{t('machineryPage.model')}</TableHead>
+                  <TableHead>{t('machineryPage.statusCol')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -79,7 +81,7 @@ export default function MaquinariaPage() {
                 ))}
                 {machines.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">No hay maquinaria registrada.</TableCell>
+                    <TableCell colSpan={5} className="text-center py-4">{t('machineryPage.empty')}</TableCell>
                   </TableRow>
                 )}
               </TableBody>

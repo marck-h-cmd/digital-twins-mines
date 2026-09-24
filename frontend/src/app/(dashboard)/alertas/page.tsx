@@ -7,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { AlertTriangle, ShieldAlert, Cpu, Activity, Clock, HeartPulse, Gauge, Wind } from 'lucide-react';
+import { useI18nStore } from '@/store/i18nStore';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/v1/alerts/ws';
 
 export default function AlertasPage() {
   const alerts = useAlertStore((state) => state.alerts);
   const addAlert = useAlertStore((state) => state.addAlert);
+  const { t, translateMessage } = useI18nStore();
 
   const handleNewAlert = useCallback((data: any) => {
     addAlert(data);
@@ -56,11 +58,11 @@ export default function AlertasPage() {
   const getHmmBadge = (hmmState: string) => {
     switch (hmmState) {
       case 'INMINENTE':
-        return <Badge className="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🔴 INMINENTE</Badge>;
+        return <Badge className="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🔴 {t('hmm.imminent')}</Badge>;
       case 'INCIPIENTE':
-        return <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-0.5 shadow-sm">🟡 INCIPIENTE</Badge>;
+        return <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-0.5 shadow-sm">🟡 {t('hmm.incipient')}</Badge>;
       default:
-        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🟢 SEGURO</Badge>;
+        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🟢 {t('hmm.secure')}</Badge>;
     }
   };
 
@@ -80,8 +82,8 @@ export default function AlertasPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Feed de Alertas Predictivas M-11</h2>
-          <p className="text-sm text-muted-foreground">Monitoreo multinivel en tiempo real: ML (RF/XGB) + HMM + Particle Filter</p>
+          <h2 className="text-3xl font-bold tracking-tight">{t('alertsFeed.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('alertsFeed.subtitle')}</p>
         </div>
       </div>
       
@@ -90,8 +92,8 @@ export default function AlertasPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
               <ShieldAlert className="h-16 w-16 mb-4 text-muted/50" />
-              <p className="text-base font-semibold">Esperando alertas en tiempo real...</p>
-              <p className="text-sm text-muted-foreground">El Gemelo Digital M-11 está activo y monitoreando telemetría.</p>
+              <p className="text-base font-semibold">{t('alertsFeed.waiting')}</p>
+              <p className="text-sm text-muted-foreground">{t('alertsFeed.waitingDesc')}</p>
             </CardContent>
           </Card>
         ) : (
@@ -108,14 +110,14 @@ export default function AlertasPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <CardTitle className="text-lg flex items-center gap-2 font-bold">
                       <AlertTriangle className={`h-5 w-5 ${riskInfo.iconClass}`} />
-                      {alert.message || 'Alerta de Proximidad Operativa'}
+                      {alert.message ? translateMessage(alert.message) : t('alertsFeed.defaultAlert')}
                     </CardTitle>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="font-mono text-xs bg-background">
-                        Trabajador #{alert.worker_id} ↔ Máquina #{alert.machine_id}
+                        {t('alertsFeed.worker')} #{alert.worker_id} ↔ {t('alertsFeed.machine')} #{alert.machine_id}
                       </Badge>
                       <Badge variant="outline" className="font-mono text-xs">
-                        Distancia: {alert.distance != null ? `${alert.distance}m` : 'N/A'}
+                        {t('alertsFeed.distance')}: {alert.distance != null ? `${alert.distance}m` : 'N/A'}
                       </Badge>
                     </div>
                   </div>
@@ -133,15 +135,15 @@ export default function AlertasPage() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
                           <Cpu className="h-4 w-4 text-primary" />
-                          Riesgo ML (RF/XGB)
+                          {t('alertsFeed.mlRisk')}
                         </span>
                         <Badge className={riskInfo.badgeClass}>
-                          {riskInfo.level}
+                          {riskInfo.level === 'ALTO' ? t('levels.high') : riskInfo.level === 'MEDIO' ? t('levels.medium') : t('levels.low')}
                         </Badge>
                       </div>
                       <div className="mt-2">
                         <span className="text-2xl font-black tracking-tight">{riskInfo.score}%</span>
-                        <span className="text-xs text-muted-foreground block font-medium">Confianza del Clasificador</span>
+                        <span className="text-xs text-muted-foreground block font-medium">{t('alertsFeed.classifierConfidence')}</span>
                       </div>
                     </div>
 
@@ -150,13 +152,15 @@ export default function AlertasPage() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
                           <Activity className="h-4 w-4 text-primary" />
-                          Estado Latente (HMM)
+                          {t('alertsFeed.hmmState')}
                         </span>
                         {getHmmBadge(hmmState)}
                       </div>
                       <div className="mt-2">
-                        <span className="text-lg font-bold text-foreground">{hmmState}</span>
-                        <span className="text-xs text-muted-foreground block font-medium">Modelo Oculto de Markov</span>
+                        <span className="text-lg font-bold text-foreground">
+                          {hmmState === 'SEGURO' ? t('hmm.secure') : hmmState === 'INCIPIENTE' ? t('hmm.incipient') : hmmState === 'INMINENTE' ? t('hmm.imminent') : hmmState === 'RIESGO AMBIENTAL' ? t('hmm.environmental') : hmmState === 'MANIOBRA PELIGROSA' ? t('hmm.maneuver') : hmmState}
+                        </span>
+                        <span className="text-xs text-muted-foreground block font-medium">{t('alertsFeed.hmmModel')}</span>
                       </div>
                     </div>
 
@@ -165,17 +169,17 @@ export default function AlertasPage() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
                           <Clock className="h-4 w-4 text-primary" />
-                          Particle Filter (+30s)
+                          {t('alertsFeed.pf30s')}
                         </span>
                         {getPfBadge(pfLevel, pfProb)}
                       </div>
                       <div className="mt-2">
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-black">{pfProb}%</span>
-                          <span className="text-xs text-muted-foreground font-medium">prob. colisión</span>
+                          <span className="text-xs text-muted-foreground font-medium">{t('alertsFeed.colProb')}</span>
                         </div>
-                        <p className="text-[11px] font-medium text-foreground line-clamp-1 mt-1" title={pf?.suggested_action_30s || 'Operación normal proyectada'}>
-                          💡 {pf?.suggested_action_30s || 'Operación normal proyectada'}
+                        <p className="text-[11px] font-medium text-foreground line-clamp-1 mt-1" title={pf?.suggested_action_30s ? translateMessage(pf.suggested_action_30s) : t('alertsFeed.normalOp')}>
+                          💡 {pf?.suggested_action_30s ? translateMessage(pf.suggested_action_30s) : t('alertsFeed.normalOp')}
                         </p>
                       </div>
                     </div>
@@ -187,15 +191,15 @@ export default function AlertasPage() {
                     <div className="flex flex-wrap items-center gap-4 text-xs bg-muted/20 p-2.5 rounded-md border text-muted-foreground">
                       <span className="flex items-center gap-1 font-medium">
                         <HeartPulse className="h-3.5 w-3.5 text-red-500" />
-                        Ritmo Cardíaco: <strong className="text-foreground">{Math.round(alert.worker_bpm || 80)} BPM</strong>
+                        {t('alertsFeed.heartRate')}: <strong className="text-foreground">{Math.round(alert.worker_bpm || 80)} BPM</strong>
                       </span>
                       <span className="flex items-center gap-1 font-medium">
                         <Gauge className="h-3.5 w-3.5 text-amber-500" />
-                        Índice Fatiga: <strong className="text-foreground font-semibold">{(alert.fatigue_index || 0.15).toFixed(2)}</strong>
+                        {t('alertsFeed.fatigueIdx')}: <strong className="text-foreground font-semibold">{(alert.fatigue_index || 0.15).toFixed(2)}</strong>
                       </span>
                       <span className="flex items-center gap-1 font-medium">
                         <Wind className="h-3.5 w-3.5 text-blue-500" />
-                        Gas CO: <strong className="text-foreground font-semibold">{(alert.gas_co_ppm || 8.0).toFixed(1)} ppm</strong>
+                        {t('alertsFeed.coGas')}: <strong className="text-foreground font-semibold">{(alert.gas_co_ppm || 8.0).toFixed(1)} ppm</strong>
                       </span>
                     </div>
                   )}

@@ -11,6 +11,7 @@ import {
   ZoomIn, ZoomOut, RotateCcw, Copy, Check, Code, FileCode, Sliders, ShieldCheck
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { useI18nStore } from '@/store/i18nStore';
 
 interface ChatMessage {
   role: 'user' | 'bot';
@@ -18,6 +19,7 @@ interface ChatMessage {
 }
 
 export default function ReportesPage() {
+  const { t } = useI18nStore();
   // Configurator state (Defaulted to Operational Worker Mode)
   const [evaluatorName, setEvaluatorName] = useState('Ing. SANTOS FERNANDEZ JUAN PEDRO');
   const [technicalNotes, setTechnicalNotes] = useState('Monitoreo telemétrico continuo en frentes de extracción M-11. Registro de alertas operacionales de proximidad y fatiga.');
@@ -202,10 +204,10 @@ ${includeFriedman ? `
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Módulo de Reportes y Validación Técnica
+            {t('reportsPage.title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            Previsualización A4 en tiempo real, validación estadística Q1 y exportación profesional (PDF, DOCX, XLSX).
+            {t('reportsPage.desc')}
           </p>
         </div>
         
@@ -218,7 +220,7 @@ ${includeFriedman ? `
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
-            Previsualizador A4
+            {t('reportsPage.tabPreview')}
           </Button>
           <Button
             size="sm"
@@ -227,7 +229,7 @@ ${includeFriedman ? `
             className="gap-2"
           >
             <Bot className="h-4 w-4" />
-            Asistente M-11 IA
+            {t('reportsPage.tabChat')}
           </Button>
         </div>
       </div>
@@ -239,41 +241,41 @@ ${includeFriedman ? `
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Sliders className="h-4 w-4 text-primary" />
-                Panel de Configuración en Vivo
+                {t('reportsPage.configTitle')}
               </CardTitle>
               <CardDescription className="text-xs">
-                Modifique los parámetros para actualizar la Hoja A4 en tiempo real.
+                {t('reportsPage.configDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Evaluador / Responsable</label>
+                <label className="text-xs font-medium text-muted-foreground">{t('reportsPage.evaluator')}</label>
                 <Input
                   value={evaluatorName}
                   onChange={(e) => setEvaluatorName(e.target.value)}
                   className="bg-background border-border text-sm"
-                  placeholder="Nombre del evaluador..."
+                  placeholder={t('reportsPage.evaluatorPlh')}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Notas Técnicas / Observaciones</label>
+                <label className="text-xs font-medium text-muted-foreground">{t('reportsPage.notes')}</label>
                 <textarea
                   value={technicalNotes}
                   onChange={(e) => setTechnicalNotes(e.target.value)}
                   rows={4}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder="Escriba las conclusiones técnicas..."
+                  placeholder={t('reportsPage.notesPlh')}
                 />
               </div>
 
               <div className="space-y-3 pt-2 border-t border-border">
                 <div className="flex justify-between items-center">
-                  <p className="text-xs font-semibold text-muted-foreground">Opciones del Reporte Operativo</p>
-                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Modo Trabajador</Badge>
+                  <p className="text-xs font-semibold text-muted-foreground">{t('reportsPage.options')}</p>
+                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">{t('reportsPage.workerMode')}</Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground italic">
-                  * Por defecto para el trabajador, se ocultan las pruebas estadísticas y métricas complejas de ML (visibles en Streamlit).
+                  {t('reportsPage.workerModeDesc')}
                 </p>
 
                 <label className="flex items-center gap-2 cursor-pointer text-xs">
@@ -283,7 +285,7 @@ ${includeFriedman ? `
                     onChange={(e) => setIncludeFriedman(e.target.checked)}
                     className="rounded border-border text-primary focus:ring-primary"
                   />
-                  <span>Incluir Pruebas Estadísticas (Opcional)</span>
+                  <span>{t('reportsPage.includeStats')}</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer text-xs">
@@ -293,12 +295,12 @@ ${includeFriedman ? `
                     onChange={(e) => setIncludeMetrics(e.target.checked)}
                     className="rounded border-border text-primary focus:ring-primary"
                   />
-                  <span>Incluir Métricas del Modelo Campeón (Opcional)</span>
+                  <span>{t('reportsPage.includeMetrics')}</span>
                 </label>
               </div>
 
               <div className="pt-3 border-t border-border space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Herramientas & Inspección de Datos</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{t('reportsPage.tools')}</p>
 
                 <Button
                   variant="outline"
@@ -307,7 +309,7 @@ ${includeFriedman ? `
                   className="w-full justify-start gap-2 text-xs"
                 >
                   <Eye className="h-4 w-4 text-blue-500" />
-                  Visor PDF en Modal (iframe)
+                  {t('reportsPage.pdfModalBtn')}
                 </Button>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -318,7 +320,7 @@ ${includeFriedman ? `
                     className="justify-start gap-1.5 text-xs"
                   >
                     <Code className="h-3.5 w-3.5 text-emerald-500" />
-                    Inspeccionar JSON
+                    {t('reportsPage.jsonBtn')}
                   </Button>
                   <Button
                     variant="outline"
@@ -327,14 +329,14 @@ ${includeFriedman ? `
                     className="justify-start gap-1.5 text-xs"
                   >
                     <FileCode className="h-3.5 w-3.5 text-amber-500" />
-                    Ver Markdown
+                    {t('reportsPage.mdBtn')}
                   </Button>
                 </div>
               </div>
 
               {/* Download Buttons Section */}
               <div className="pt-4 border-t border-border space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground">Exportación Directa</p>
+                <p className="text-xs font-semibold text-muted-foreground">{t('reportsPage.export')}</p>
                 <div className="grid grid-cols-3 gap-2">
                   <Button
                     onClick={() => handleDownloadFile('pdf')}
@@ -375,7 +377,7 @@ ${includeFriedman ? `
             <div className="flex items-center justify-between bg-card border border-border px-4 py-2 rounded-lg shadow-sm">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
-                  <ShieldCheck className="h-3.5 w-3.5" /> HOJA A4 VISTA PREVIA EN VIVO
+                  <ShieldCheck className="h-3.5 w-3.5" /> {t('reportsPage.a4Title')}
                 </Badge>
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   (210 mm x 297 mm)
@@ -389,7 +391,7 @@ ${includeFriedman ? `
                   variant="ghost"
                   className="h-8 w-8"
                   onClick={() => setZoomLevel(prev => Math.max(prev - 10, 50))}
-                  title="Alejar Zoom"
+                  title={t('reportsPage.zoomOut')}
                 >
                   <ZoomOut className="h-4 w-4" />
                 </Button>
@@ -399,7 +401,7 @@ ${includeFriedman ? `
                   variant="ghost"
                   className="h-8 w-8"
                   onClick={() => setZoomLevel(prev => Math.min(prev + 10, 150))}
-                  title="Acercar Zoom"
+                  title={t('reportsPage.zoomIn')}
                 >
                   <ZoomIn className="h-4 w-4" />
                 </Button>
@@ -408,7 +410,7 @@ ${includeFriedman ? `
                   variant="ghost"
                   className="h-8 w-8"
                   onClick={() => setZoomLevel(100)}
-                  title="Restablecer Zoom"
+                  title={t('reportsPage.resetZoom')}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </Button>
@@ -420,7 +422,7 @@ ${includeFriedman ? `
                   variant="ghost"
                   className="h-8 w-8"
                   onClick={() => setIsFullScreen(!isFullScreen)}
-                  title={isFullScreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
+                  title={isFullScreen ? t('reportsPage.exitFullscreen') : t('reportsPage.fullscreen')}
                 >
                   {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
@@ -438,7 +440,7 @@ ${includeFriedman ? `
                   onClick={() => setIsFullScreen(false)}
                   className="fixed top-4 right-6 z-50 gap-2 shadow-lg"
                 >
-                  <Minimize2 className="h-4 w-4" /> Salir de Pantalla Completa
+                  <Minimize2 className="h-4 w-4" /> {t('reportsPage.exitFullscreen')}
                 </Button>
               )}
 

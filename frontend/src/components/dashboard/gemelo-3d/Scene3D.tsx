@@ -11,6 +11,7 @@ import InfoPanel3D from './InfoPanel3D';
 import { useAlertStore } from '@/store/alertStore';
 import { Suspense, useCallback, useState, useEffect } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { useI18nStore } from '@/store/i18nStore';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/v1/alerts/ws';
 
@@ -54,6 +55,7 @@ export default function Scene3D() {
   const addAlert = useAlertStore((state) => state.addAlert);
   const activeAlert = alerts.length > 0 ? alerts[0] : null;
   const [viewPreset, setViewPreset] = useState<CameraPreset>('isometric');
+  const { t } = useI18nStore();
 
   const handleWsMessage = useCallback((data: any) => addAlert(data), [addAlert]);
   useWebSocket(WS_URL, handleWsMessage);
@@ -130,7 +132,7 @@ export default function Scene3D() {
           <TunnelGeometry />
 
           {/* Zona Restringida */}
-          <RestrictedZone position={[5, 0, -5]} size={[10, 4, 10]} name="Zona Carguío LHD" />
+          <RestrictedZone position={[5, 0, -5]} size={[10, 4, 10]} name={t('scene.restrictedZone')} />
 
           {/* Trabajadores con Biometría y Posición Dinámica */}
           <WorkerAvatar
@@ -176,7 +178,7 @@ export default function Scene3D() {
               : 'hover:bg-muted text-muted-foreground'
           }`}
         >
-          🎥 General
+          🎥 {t('scene.camGeneral')}
         </button>
         <button
           onClick={() => setViewPreset('machine')}
@@ -186,7 +188,7 @@ export default function Scene3D() {
               : 'hover:bg-muted text-muted-foreground'
           }`}
         >
-          🚜 LHD Loader
+          🚜 {t('scene.camLoader')}
         </button>
         <button
           onClick={() => setViewPreset('worker')}
@@ -196,7 +198,7 @@ export default function Scene3D() {
               : 'hover:bg-muted text-muted-foreground'
           }`}
         >
-          👷 Operador
+          👷 {t('scene.camOperator')}
         </button>
       </div>
 

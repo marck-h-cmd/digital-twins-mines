@@ -14,13 +14,17 @@ const Scene3D = dynamic(() => import('@/components/dashboard/gemelo-3d/Scene3D')
   )
 });
 
+import { useI18nStore } from '@/store/i18nStore';
+
 export default function GemeloDigitalPage() {
+  const { t } = useI18nStore();
+  
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Gemelo Digital 3D</h2>
-          <p className="text-muted-foreground">Monitor en tiempo real del frente de extracción subterránea.</p>
+          <h2 className="text-3xl font-bold tracking-tight">{t('gemeloPage.title')}</h2>
+          <p className="text-muted-foreground">{t('gemeloPage.desc')}</p>
         </div>
         <div>
           <SimulateButton size="default" variant="default" />
