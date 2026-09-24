@@ -2,6 +2,8 @@ import { Html } from '@react-three/drei';
 import { useRef } from 'react';
 import { Mesh, Group, MathUtils } from 'three';
 import { useFrame } from '@react-three/fiber';
+import { Vector3, Group } from 'three';
+import { useMemo } from 'react';
 
 interface WorkerProps {
   position: [number, number, number];
@@ -15,25 +17,27 @@ export default function WorkerAvatar({ position, riskLevel, label, bpm = 85, fat
   const groupRef = useRef<Group>(null);
   const haloRef = useRef<Mesh>(null);
 
+  // Target position for smooth interpolation
+  const targetPosition = useMemo(() => new Vector3(...position), [position]);
+
   // Color mapping
   let color = '#22c55e';
   if (riskLevel === 'MEDIO') color = '#eab308';
   if (riskLevel === 'ALTO') color = '#ef4444';
 
   useFrame(({ clock }, delta) => {
-    // Smooth position LERP animation
-    if (groupRef.current) {
-      groupRef.current.position.x = MathUtils.lerp(groupRef.current.position.x, position[0], delta * 3.5);
-      groupRef.current.position.y = MathUtils.lerp(groupRef.current.position.y, position[1], delta * 3.5);
-      groupRef.current.position.z = MathUtils.lerp(groupRef.current.position.z, position[2], delta * 3.5);
-    }
-
+    // Animate halo
     if (haloRef.current && (riskLevel === 'MEDIO' || riskLevel === 'ALTO')) {
       const speed = riskLevel === 'ALTO' ? 8 : 3;
       const pulse = Math.sin(clock.elapsedTime * speed);
       haloRef.current.scale.x = 1 + pulse * 0.15;
       haloRef.current.scale.z = 1 + pulse * 0.15;
       (haloRef.current.material as any).opacity = 0.5 + pulse * 0.3;
+    }
+
+    // Smooth movement interpolation
+    if (groupRef.current) {
+      groupRef.current.position.lerp(targetPosition, delta * 3);
     }
   });
 

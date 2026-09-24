@@ -2,6 +2,8 @@ import { Html } from '@react-three/drei';
 import { useRef } from 'react';
 import { Mesh, Group, MathUtils } from 'three';
 import { useFrame } from '@react-three/fiber';
+import { Vector3, Group } from 'three';
+import { useMemo } from 'react';
 
 interface MachineProps {
   position: [number, number, number];
@@ -13,25 +15,27 @@ export default function MachineModel({ position, riskLevel, label }: MachineProp
   const groupRef = useRef<Group>(null);
   const haloRef = useRef<Mesh>(null);
 
+  // Target position for smooth interpolation
+  const targetPosition = useMemo(() => new Vector3(...position), [position]);
+
   // Risk color
   let riskColor = '#3b82f6'; // blue default
   if (riskLevel === 'MEDIO') riskColor = '#eab308';
   if (riskLevel === 'ALTO') riskColor = '#ef4444';
 
   useFrame(({ clock }, delta) => {
-    // Smooth position LERP animation
-    if (groupRef.current) {
-      groupRef.current.position.x = MathUtils.lerp(groupRef.current.position.x, position[0], delta * 3.5);
-      groupRef.current.position.y = MathUtils.lerp(groupRef.current.position.y, position[1], delta * 3.5);
-      groupRef.current.position.z = MathUtils.lerp(groupRef.current.position.z, position[2], delta * 3.5);
-    }
-
+    // Animate halo
     if (haloRef.current && (riskLevel === 'MEDIO' || riskLevel === 'ALTO')) {
       const speed = riskLevel === 'ALTO' ? 8 : 3;
       const pulse = Math.sin(clock.elapsedTime * speed);
       haloRef.current.scale.x = 1 + pulse * 0.08;
       haloRef.current.scale.z = 1 + pulse * 0.08;
       (haloRef.current.material as any).opacity = 0.4 + pulse * 0.2;
+    }
+
+    // Smooth movement interpolation
+    if (groupRef.current) {
+      groupRef.current.position.lerp(targetPosition, delta * 3);
     }
   });
 

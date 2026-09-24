@@ -21,6 +21,21 @@ class MLLoader:
         ]
         self.class_names = ["BAJO", "MEDIO", "ALTO"]
         self._load_model()
+        
+    def _patch_pipeline(self, est):
+        """Recursively patch scikit-learn estimators for version compatibility."""
+        if hasattr(est, "steps"):
+            for name, step in est.steps:
+                self._patch_pipeline(step)
+        elif hasattr(est, "transformers_"):
+            for name, transformer, columns in est.transformers_:
+                self._patch_pipeline(transformer)
+        elif hasattr(est, "transformers"):
+            for name, transformer, columns in est.transformers:
+                self._patch_pipeline(transformer)
+        if type(est).__name__ == "SimpleImputer":
+            if not hasattr(est, "_fill_dtype"):
+                est._fill_dtype = getattr(est, "_fit_dtype", float)
     
     def _load_model(self):
         target_path = self.best_model_path if os.path.exists(self.best_model_path) else self.fallback_model_path
@@ -32,6 +47,8 @@ class MLLoader:
                 self.feature_names = artifact.get("feature_names", self.feature_names)
             else:
                 self.model = artifact
+                
+            self._patch_pipeline(self.model)
             print(f"Loaded ML model successfully from {target_path}")
         else:
             print(f"Warning: ML model artifact not found at {target_path}")

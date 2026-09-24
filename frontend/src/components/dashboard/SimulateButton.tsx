@@ -36,12 +36,12 @@ export function SimulateButton({
       setIsRunning(true);
       setStatusText('Simulando telemetría...');
 
-      // The simulation in backend takes 3 steps * ~2.5s = ~8 seconds
+      // The simulation in backend takes ~26 steps * 1.5s = ~39 seconds
       setTimeout(() => {
         setIsRunning(false);
         setStatusText('Simulación completada');
         setTimeout(() => setStatusText(null), 3000);
-      }, 8500);
+      }, 40000);
 
     } catch (err: any) {
       console.error('Error al ejecutar simulación de telemetría:', err);

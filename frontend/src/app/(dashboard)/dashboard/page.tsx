@@ -6,7 +6,9 @@ import { useAlertStore } from '@/store/alertStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Bell, Users, Truck, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { SimulateButton } from '@/components/dashboard/SimulateButton';
+import { RealTimeChart } from '@/components/dashboard/RealTimeChart';
+import { Activity, Bell, Users, Truck, AlertTriangle, ShieldCheck, Heart, Wind, CloudFog, Zap, BrainCircuit } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -96,9 +98,14 @@ export default function Dashboard() {
 
   const recentAlerts = alerts.slice(0, 5);
 
+  const activeAlert = alerts.length > 0 ? alerts[0] : null;
+
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Dashboard General</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard General</h2>
+        <SimulateButton size="default" variant="default" />
+      </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -143,6 +150,69 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{stats.alerts_today_alto}</div>
             <p className="text-xs text-muted-foreground">Requieren atención inmediata</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* NEW: Telemetry & Live Prediction Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">BPM Trabajador</CardTitle>
+            <Heart className="h-4 w-4 text-rose-500" />
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="text-2xl font-bold">{activeAlert?.worker_bpm ? `${activeAlert.worker_bpm} bpm` : '--'}</div>
+            <p className="text-xs text-muted-foreground mb-2">Ritmo cardíaco actual</p>
+            <RealTimeChart data={alerts} dataKey="worker_bpm" baseColor="#f43f5e" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Índice Fatiga</CardTitle>
+            <Zap className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="text-2xl font-bold">{activeAlert?.fatigue_index ? `${(activeAlert.fatigue_index * 100).toFixed(0)}%` : '--'}</div>
+            <p className="text-xs text-muted-foreground mb-2">Nivel de fatiga</p>
+            <RealTimeChart data={alerts} dataKey="fatigue_index" baseColor="#f97316" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gas CO</CardTitle>
+            <Wind className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="text-2xl font-bold">{activeAlert?.gas_co_ppm ? `${activeAlert.gas_co_ppm} ppm` : '--'}</div>
+            <p className="text-xs text-muted-foreground mb-2">Calidad del aire</p>
+            <RealTimeChart data={alerts} dataKey="gas_co_ppm" baseColor="#10b981" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Polvo (Densidad)</CardTitle>
+            <CloudFog className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeAlert?.dust_density_mg_m3 ? `${activeAlert.dust_density_mg_m3} mg/m³` : '--'}</div>
+            <p className="text-xs text-muted-foreground">Partículas en suspensión</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Riesgo Futuro (30s)</CardTitle>
+            <BrainCircuit className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-bold truncate">
+              {activeAlert?.particle_filter_30s?.early_warning_level?.replace('_30S', '') || '--'}
+            </div>
+            <p className="text-xs text-muted-foreground">Filtro de Partículas</p>
           </CardContent>
         </Card>
       </div>
