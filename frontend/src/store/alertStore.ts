@@ -21,6 +21,10 @@ interface AlertMessage {
   };
   distance?: number;
   distance_3d?: number;
+  worker_x?: number;
+  worker_z?: number;
+  machine_x?: number;
+  machine_z?: number;
   worker_bpm?: number;
   fatigue_index?: number;
   gas_co_ppm?: number;

@@ -46,14 +46,20 @@ async def create_report(
     evaluator_name: Optional[str] = Query(None),
     technical_notes: Optional[str] = Query(None),
     include_friedman: bool = Query(True),
+    lang: str = Query("es"),
     current_user: User = Depends(get_current_user)
 ):
     try:
+        clean_lang = (lang or "es").strip().lower()
+        if clean_lang not in ["es", "en"]:
+            clean_lang = "es"
+
         filepath = await report_generator.generate(
             fmt=format,
             evaluator_name=evaluator_name,
             technical_notes=technical_notes,
-            include_friedman=include_friedman
+            include_friedman=include_friedman,
+            lang=clean_lang
         )
         filename = os.path.basename(filepath)
         return {"message": "Reporte generado", "filename": filename, "format": format}

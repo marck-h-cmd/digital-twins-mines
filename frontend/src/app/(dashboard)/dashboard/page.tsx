@@ -39,7 +39,16 @@ export default function Dashboard() {
   });
   const [chartData, setChartData] = useState<any[]>([]);
 
-  const { t, translateMessage } = useI18nStore();
+  const { t, translateMessage, locale } = useI18nStore();
+
+  const getPfLevelDisplay = (level?: string) => {
+    if (!level) return '--';
+    const clean = level.replace('_30S', '');
+    if (clean === 'SEGURO') return t('hmm.secure');
+    if (clean === 'CRITICO' || clean === 'CRÍTICO') return locale === 'en' ? 'CRITICAL' : 'CRÍTICO';
+    if (clean === 'PRECAUCION' || clean === 'PRECAUCIÓN') return locale === 'en' ? 'CAUTION' : 'PRECAUCIÓN';
+    return translateMessage(clean);
+  };
 
   const alerts = useAlertStore((s) => s.alerts);
   const addAlert = useAlertStore((s) => s.addAlert);
@@ -91,7 +100,7 @@ export default function Dashboard() {
         const chartArr = Object.entries(hourMap)
           .map(([hour, v]) => ({ hora: hour, ALTO: v.alto, MEDIO: v.medio }))
           .slice(-10);
-        setChartData(chartArr.length > 0 ? chartArr : [{ hora: 'Sin datos', ALTO: 0, MEDIO: 0 }]);
+        setChartData(chartArr.length > 0 ? chartArr : [{ hora: t('dashboard.noData'), ALTO: 0, MEDIO: 0 }]);
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
       }
@@ -213,7 +222,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-lg font-bold truncate">
-              {activeAlert?.particle_filter_30s?.early_warning_level?.replace('_30S', '') || '--'}
+              {getPfLevelDisplay(activeAlert?.particle_filter_30s?.early_warning_level)}
             </div>
             <p className="text-xs text-muted-foreground">{t('dashboard.futureRiskDesc')}</p>
           </CardContent>

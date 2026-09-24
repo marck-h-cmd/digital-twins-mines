@@ -1,9 +1,7 @@
 import { Html } from '@react-three/drei';
-import { useRef } from 'react';
-import { Mesh, Group, MathUtils } from 'three';
+import { useRef, useMemo } from 'react';
+import { Mesh, Group, MathUtils, Vector3 } from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Vector3, Group } from 'three';
-import { useMemo } from 'react';
 
 interface MachineProps {
   position: [number, number, number];

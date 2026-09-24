@@ -24,3 +24,6 @@ pytest
 pytest-asyncio
 httpx
 imbalanced-learn
+langchain
+langchain-google-genai
+langchain-core

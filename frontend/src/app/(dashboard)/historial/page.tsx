@@ -69,7 +69,7 @@ export default function HistorialPage() {
                     </TableCell>
                     <TableCell>{translateMessage(alert.message)}</TableCell>
                     <TableCell>#{alert.interaction_id}</TableCell>
-                    <TableCell>{alert.status}</TableCell>
+                    <TableCell>{translateMessage(alert.status)}</TableCell>
                   </TableRow>
                 ))}
                 {alerts.length === 0 && (

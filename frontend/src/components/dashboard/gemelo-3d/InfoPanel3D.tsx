@@ -124,7 +124,7 @@ export default function InfoPanel3D({ activeAlert }: InfoPanelProps) {
                     <span>{pf.collision_probability_30s}% {t('digitalTwin.risk')}</span>
                   </div>
                   <p className="text-[11px] text-foreground leading-tight">
-                    {pf.suggested_action_30s}
+                    {translateMessage(pf.suggested_action_30s)}
                   </p>
                 </div>
               )}

@@ -55,27 +55,35 @@ export default function AlertasPage() {
     };
   };
 
+  const getTranslatedHmmState = (state: string) => {
+    if (!state) return t('hmm.secure');
+    if (state.includes('INMINENTE')) return t('hmm.imminent');
+    if (state.includes('AMBIENTAL')) return t('hmm.environmental');
+    if (state.includes('MANIOBRA')) return t('hmm.maneuver');
+    if (state.includes('INCIPIENTE')) return t('hmm.incipient');
+    if (state.includes('SEGURO')) return t('hmm.secure');
+    return translateMessage(state);
+  };
+
   const getHmmBadge = (hmmState: string) => {
-    switch (hmmState) {
-      case 'INMINENTE':
-        return <Badge className="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🔴 {t('hmm.imminent')}</Badge>;
-      case 'INCIPIENTE':
-        return <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-0.5 shadow-sm">🟡 {t('hmm.incipient')}</Badge>;
-      default:
-        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🟢 {t('hmm.secure')}</Badge>;
+    if (hmmState.includes('INMINENTE') || hmmState === 'INMINENTE') {
+      return <Badge className="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🔴 {t('hmm.imminent')}</Badge>;
     }
+    if (hmmState.includes('AMBIENTAL') || hmmState.includes('MANIOBRA') || hmmState.includes('INCIPIENTE') || hmmState === 'INCIPIENTE') {
+      return <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-0.5 shadow-sm">🟡 {getTranslatedHmmState(hmmState)}</Badge>;
+    }
+    return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🟢 {t('hmm.secure')}</Badge>;
   };
 
   const getPfBadge = (pfLevel?: string, prob: number = 0) => {
     const level = pfLevel || (prob > 40 ? 'CRITICO_30S' : prob > 15 ? 'PRECAUCION_30S' : 'SEGURO_30S');
-    switch (level) {
-      case 'CRITICO_30S':
-        return <Badge className="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🔴 CRÍTICO (+30s)</Badge>;
-      case 'PRECAUCION_30S':
-        return <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-0.5 shadow-sm">🟡 PRECAUCIÓN (+30s)</Badge>;
-      default:
-        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-0.5 shadow-sm">🟢 SEGURO (+30s)</Badge>;
+    if (level.includes('CRITICO') || level.includes('CRÍTICO')) {
+      return <Badge className="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-0.5 shadow-sm">{t('alertsFeed.pfCritical')}</Badge>;
     }
+    if (level.includes('PRECAUCION') || level.includes('PRECAUCIÓN')) {
+      return <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-0.5 shadow-sm">{t('alertsFeed.pfCaution')}</Badge>;
+    }
+    return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-0.5 shadow-sm">{t('alertsFeed.pfSecure')}</Badge>;
   };
 
   return (
@@ -158,7 +166,7 @@ export default function AlertasPage() {
                       </div>
                       <div className="mt-2">
                         <span className="text-lg font-bold text-foreground">
-                          {hmmState === 'SEGURO' ? t('hmm.secure') : hmmState === 'INCIPIENTE' ? t('hmm.incipient') : hmmState === 'INMINENTE' ? t('hmm.imminent') : hmmState === 'RIESGO AMBIENTAL' ? t('hmm.environmental') : hmmState === 'MANIOBRA PELIGROSA' ? t('hmm.maneuver') : hmmState}
+                          {getTranslatedHmmState(hmmState)}
                         </span>
                         <span className="text-xs text-muted-foreground block font-medium">{t('alertsFeed.hmmModel')}</span>
                       </div>
