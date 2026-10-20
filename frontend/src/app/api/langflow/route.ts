@@ -79,27 +79,31 @@ async function callGeminiApi(apiKey: string, prompt: string): Promise<string | n
   return null;
 }
 
-// Generador determinista de protocolos de emergencia según D.S. 024-2016-EM y OSHA
+// Generador determinista de protocolos de emergencia según D.S. 024-2016-EM y OSHA adaptado dinámicamente
 function generateM11SafetyProtocol(telemetry: TelemetryPayload): { text: string; riskLevel: string } {
-  const dist = telemetry.distance_3d ?? 3.2;
-  const ttc = telemetry.ttc ?? 1.8;
+  const dist = telemetry.distance_3d ?? 25.0;
+  const inZone = telemetry.in_restricted_zone !== undefined
+    ? Number(telemetry.in_restricted_zone)
+    : (dist < 5.0 ? 1 : 0);
+  const ttc = telemetry.ttc !== undefined
+    ? Number(telemetry.ttc)
+    : (dist > 10 ? 99.0 : Number((dist / 2.0).toFixed(2)));
   const workerSpeed = telemetry.worker_speed ?? 1.1;
   const machineSpeed = telemetry.machine_speed ?? 3.8;
-  const inZone = telemetry.in_restricted_zone ?? (dist < 5.0 ? 1 : 0);
-  const co = telemetry.gas_co_ppm ?? 38.5;
-  const fatigue = telemetry.fatigue_index ?? 0.65;
-  const bpm = telemetry.worker_bpm ?? 110.0;
-  const dust = telemetry.dust_density_mg_m3 ?? 3.5;
+  const co = telemetry.gas_co_ppm ?? 9.9;
+  const fatigue = telemetry.fatigue_index ?? 0.27;
+  const bpm = telemetry.worker_bpm ?? 75.0;
+  const dust = telemetry.dust_density_mg_m3 ?? 2.8;
 
   let riskLevel = 'BAJO';
   let badgeColor = '🟢';
   let statusSummary = 'Condiciones operativas dentro de parámetros de control y tolerancia estándar.';
 
-  if (dist <= 3.5 || ttc <= 2.0 || inZone === 1 || co >= 35.0 || fatigue >= 0.7) {
+  if (dist <= 3.5 || (ttc <= 2.0 && ttc > 0) || inZone === 1 || co >= 35.0 || fatigue >= 0.7) {
     riskLevel = 'CRÍTICO (CÓDIGO ROJO)';
     badgeColor = '🚨';
     statusSummary = 'PELIGRO INMINENTE: Interacción hombre-máquina en zona de aplastamiento o condición atmosférica crítica.';
-  } else if (dist <= 8.0 || ttc <= 4.5 || co >= 25.0 || fatigue >= 0.5) {
+  } else if (dist <= 8.0 || (ttc <= 4.5 && ttc > 0) || co >= 25.0 || fatigue >= 0.5) {
     riskLevel = 'ALTO (CÓDIGO NARANJA)';
     badgeColor = '⚠️';
     statusSummary = 'ALERTA PREVENTIVA: Proximidad de riesgo en rampa subterránea o saturación de monóxido de carbono.';
@@ -111,7 +115,7 @@ function generateM11SafetyProtocol(telemetry: TelemetryPayload): { text: string;
 
   const triggers: string[] = [];
   if (dist <= 5.0) triggers.push(`**Proximidad Crítica:** Distancia 3D de **${dist.toFixed(1)} m** (Límite seguro: > 10.0 m)`);
-  if (ttc <= 3.0) triggers.push(`**Tiempo de Choque Inminente (TTC):** **${ttc.toFixed(1)} s** para posible impacto`);
+  if (ttc <= 3.0 && ttc > 0) triggers.push(`**Tiempo de Choque Inminente (TTC):** **${ttc.toFixed(1)} s** para posible impacto`);
   if (inZone === 1) triggers.push(`**Incursión No Autorizada:** Operario en **Zona Ciega / Radio de Giro Restringido**`);
   if (co >= 25.0) triggers.push(`**Gas Monóxido de Carbono (CO):** **${co.toFixed(1)} ppm** (Supera LMP de 25 ppm según D.S. 024-2016-EM)`);
   if (fatigue >= 0.6) triggers.push(`**Fatiga Operativa Elevada:** Índice **${fatigue.toFixed(2)}** (BPM: **${bpm.toFixed(0)}**)`);
@@ -137,7 +141,7 @@ ${triggers.map((t) => `  - ${t}`).join('\n')}
 | Sensor / Variable | Valor Actual | Umbral Seguro | Estado Operativo |
 | :--- | :--- | :--- | :--- |
 | **Distancia 3D** | \`${dist.toFixed(1)} m\` | > 10.0 m | ${dist < 5.0 ? '🔴 CRÍTICO' : dist < 10.0 ? '🟡 ALERTA' : '🟢 NORMAL'} |
-| **TTC (Time to Collision)** | \`${ttc.toFixed(1)} s\` | > 5.0 s | ${ttc < 3.0 ? '🔴 INMINENTE' : ttc < 5.0 ? '🟡 PRECAUCIÓN' : '🟢 SEGURO'} |
+| **TTC (Time to Collision)** | \`${ttc >= 60 ? '> 30 s' : `${ttc.toFixed(1)} s`}\` | > 5.0 s | ${ttc < 3.0 && ttc > 0 ? '🔴 INMINENTE' : ttc < 5.0 && ttc > 0 ? '🟡 PRECAUCIÓN' : '🟢 SEGURO'} |
 | **Monóxido de Carbono (CO)** | \`${co.toFixed(1)} ppm\` | ≤ 25 ppm (LMP) | ${co > 25.0 ? '🔴 TÓXICO' : '🟢 SEGURO'} |
 | **Zona Restringida** | \`${inZone === 1 ? 'SÍ (Incursión)' : 'NO'}\` | Libre | ${inZone === 1 ? '🔴 VIOLACIÓN' : '🟢 DESPEJADO'} |
 | **Índice de Fatiga / BPM** | \`${fatigue.toFixed(2)} / ${bpm.toFixed(0)} BPM\` | < 0.50 / < 100 BPM | ${fatigue > 0.6 ? '🔴 FATIGA ALTA' : '🟢 NORMAL'} |
@@ -226,12 +230,13 @@ export async function POST(req: Request) {
       if (telemetry.worker_bpm !== undefined) cleanTelemetry.worker_bpm = Number(telemetry.worker_bpm);
       if (telemetry.dust_density_mg_m3 !== undefined) cleanTelemetry.dust_density_mg_m3 = Number(telemetry.dust_density_mg_m3);
 
+      tweaks['CustomComponent-s7DBd'] = cleanTelemetry;
       tweaks['CustomComponent-MiningPredictor'] = cleanTelemetry;
       tweaks['MiningRiskPredictor'] = cleanTelemetry;
     }
 
     const payload = {
-      input_value: message,
+      input_value: message || 'Evaluar riesgo operativo y emitir protocolo de emergencia inmediato para mina subterránea.',
       input_type: 'chat',
       output_type: 'chat',
       ...(Object.keys(tweaks).length > 0 ? { tweaks } : {}),
@@ -244,13 +249,13 @@ export async function POST(req: Request) {
       headers['x-api-key'] = apiKey;
     }
 
-    // Timeout de 2.5 segundos para Langflow para evitar bloqueos
+    // Timeout de 3 segundos para Langflow para evitar bloqueos
     const response = await fetch(`${langflowUrl}/api/v1/run/${flowId}?stream=false`, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
       cache: 'no-store',
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(3000),
     });
 
     if (response.ok) {
@@ -277,12 +282,12 @@ export async function POST(req: Request) {
   const geminiKey = getGeminiApiKey();
   if (geminiKey) {
     try {
-      const dist = telemetry.distance_3d ?? 3.2;
-      const ttc = telemetry.ttc ?? 1.8;
-      const co = telemetry.gas_co_ppm ?? 38.5;
-      const inZone = telemetry.in_restricted_zone ?? 1;
-      const fatigue = telemetry.fatigue_index ?? 0.65;
-      const bpm = telemetry.worker_bpm ?? 110.0;
+      const dist = telemetry.distance_3d ?? 25.0;
+      const ttc = telemetry.ttc !== undefined ? Number(telemetry.ttc) : (dist > 10 ? 99.0 : Number((dist / 2.0).toFixed(2)));
+      const co = telemetry.gas_co_ppm ?? 9.9;
+      const inZone = telemetry.in_restricted_zone !== undefined ? Number(telemetry.in_restricted_zone) : (dist < 5.0 ? 1 : 0);
+      const fatigue = telemetry.fatigue_index ?? 0.27;
+      const bpm = telemetry.worker_bpm ?? 75.0;
 
       const prompt = `
 Eres el Asistente Inteligente de Seguridad y Prevención de Riesgos en Minería Subterránea M-11.
