@@ -1,0 +1,57 @@
+{
+  "project": "M-11 Digital Twin for Underground Mining Human-Machine Interaction",
+  "timestamp_utc": "2026-10-26T21:42:31Z",
+  "target_journal": "Acta Montanistica Slovaca",
+  "dataset": {
+    "source": "UCI AI4I 2020 Predictive Maintenance (synthetic base) + Underground Mining Telemetry Simulation",
+    "total_records": 10000,
+    "train_records": 8000,
+    "test_records": 2000,
+    "train_test_split": "80/20 Stratified",
+    "random_seed": 42,
+    "features_total_declared": 37,
+    "features_in_ml_pipeline": 16,
+    "target_variable": "risk_level (0=BAJO, 1=MEDIO, 2=ALTO)",
+    "target_prevalence_alto": 0.22,
+    "target_nature": "Heuristic synthetic formula (82.07% spatial/kinematic variance explained; sigma=3.8)"
+  },
+  "ml_validation_protocol": {
+    "cv_method": "StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+    "resampling_strategy": "SMOTENC (nested inside fold pipeline; never touches test or validation fold)",
+    "threshold_calibration": "Max F2 (beta=2.0) on out-of-fold development probabilities",
+    "test_holdout_access": "Evaluated exactly once with fixed calibrated threshold; zero retraining on test set",
+    "statistical_hypothesis_testing": "Paired bootstrap (1000 resamples), exact paired McNemar test, Holm-Bonferroni correction, Cliff's delta",
+    "statistical_conclusion_policy": "Distinguishes failure to reject H0 (p_Holm > 0.05 or CI containing 0) from formal equivalence (TOST)"
+  },
+  "safety_architecture": {
+    "deterministic_safety_interlock": "Implemented in backend (app.services.gemini_service.DeterministicSafetyInterlock)",
+    "nature_of_interlock": "Safety Advisory & Protocol Directives Engine (Operational mandates; does not physically actuate machinery PLC relays)",
+    "standards_enforced": [
+      "D.S. 024-2016-EM Art. 272 / Art. 274 (Proximity / Collision Lockout)",
+      "D.S. 024-2016-EM Art. 103 / Art. 252 (CO Gas > 25 ppm / 50 ppm Evacuation)",
+      "D.S. 024-2016-EM Art. 138 (Operator Fatigue Shift Relief)",
+      "D.S. 024-2016-EM Art. 367 / Art. 368 (Machine Failure & LOTO Lockout)"
+    ],
+    "llm_role": "Advisory and explainability only; cannot override deterministic lockouts"
+  },
+  "hardware_environment": {
+    "processor": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "cores_physical": 4,
+    "cores_logical": 8,
+    "ram_total_gb": 15.89,
+    "operating_system": "Microsoft Windows 11 Home (build 26200)",
+    "architecture": "AMD64"
+  },
+  "software_stack": {
+    "python": "3.10.11",
+    "xgboost": "2.1.4",
+    "scikit_learn": "1.7.2",
+    "imbalanced_learn": "0.14.0",
+    "shap": "0.49.1",
+    "fastapi": "0.115.11",
+    "uvicorn": "0.34.0",
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "scipy": "1.15.3"
+  }
+}

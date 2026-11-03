@@ -1,0 +1,62 @@
+{
+  "title": "Dataset and Replication Package for M-11: Auditing Synthetic Risk Labels and Physical Baselines in a Cyber-Physical Benchmark for Underground Mining",
+  "upload_type": "dataset",
+  "publication_date": "2026-11-03",
+  "description": "<p><strong>Overview:</strong></p>\n<p>This repository hosts the official replication package, synthetic benchmark dataset, and experimental audit assets for the study <em>&quot;M-11: Auditing Synthetic Risk Labels and Physical Baselines in a Cyber-Physical Benchmark for Underground Mining&quot;</em> (submitted to <em>Acta Montanistica Slovaca</em>, 2026).</p>\n<p>M-11 is a simulation-only cyber-physical benchmark that integrates AI4I 2020 predictive maintenance attributes with synthetic kinematic positioning, physiological, and environmental indicators (10,000 records; 37 columns) to audit the statistical and architectural mechanics of synthetic risk labelling in confined underground mining.</p>\n<p><strong>Key Empirical Findings Reported in the Paper:</strong></p>\n<ul>\n  <li><strong>Label Circularity Audit:</strong> Variance decomposition demonstrates that 82.07% of the synthetic score variance is driven by spatial/kinematic components, 17.43% by injected noise, 0.48% by multimodal variables, and 0.02% by cross-covariance.</li>\n  <li><strong>Symmetric Holdout Evaluation (n = 2,000, seed 42):</strong> Calibrated Time-to-Collision (TTC) and Random Forest both achieve F2 = 0.9103; XGBoost achieves F2 = 0.9065. The paired bootstrap difference (&Delta;F2 = -0.0038, 95% CI: -0.0129 to 0.0047) and Holm-adjusted McNemar test (p = 0.6015) confirm no statistically significant gap under circular labels.</li>\n  <li><strong>Decoupled Hazard Stress Tests:</strong> Under 22% class prevalence and low signal-to-noise ratio, non-spatial decoupled labels (CO, fatigue, vibration) push F2 optimisation to near-universal HIGH alerts, approaching the trivial Always-HIGH baseline (F2 = 0.5851). A multimodal-only composite target recovers F2 = 0.6408 with 54.1% specificity.</li>\n  <li><strong>Feature Ablations:</strong> Removing three direct kinematic indicators reduces F2 by 9.60 percentage points; removing the entire 8-feature spatial block reduces F2 by 32.52 percentage points from the full 0.9065 baseline.</li>\n  <li><strong>Computational Performance:</strong> Local backend P95 latency scales to 27.91 ms under 500 concurrent agents (&lt; 200 ms supervisory threshold). The WebGL/Three.js integrated-GPU prototype achieves 34.8 FPS under nominal load.</li>\n  <li><strong>Deterministic Safety &amp; GenAI Audit:</strong> The independent deterministic safety layer satisfies 17 automated unit/integration tests and 100/100 scripted regulatory scenario checks. The Gemini language model acts strictly as an exploratory natural-language interface without numerical autonomy.</li>\n</ul>\n<p><strong>Package Contents &amp; Verification Checksums (SHA-256):</strong></p>\n<ul>\n  <li><code>public_mining_equipment_dataset.csv</code> (3,859,401 bytes) &mdash; SHA-256: <code>b71d0b6baed8b6e0bc7eee1a1a5b7440d06a04ddaea5d502907cf03d958705f0</code></li>\n  <li><code>requirements.txt</code> (574 bytes) &mdash; Frozen Python 3.10.11 scientific dependencies.</li>\n  <li><code>results/feature_dictionary.csv</code> &mdash; Full dictionary defining all 37 attributes, physical units, and provenance.</li>\n  <li><code>results/label_circularity_audit.json</code> &mdash; Variance decomposition and baseline comparison exports.</li>\n  <li><code>results/genai_audit_bank.json</code> &mdash; 100 structured synthetic scenarios for LLM compliance auditing.</li>\n  <li><code>results/genai_audit_review_sheet.csv</code> &mdash; Manual verification rubric with inter-annotator agreement (Cohen's &kappa; = 0.85).</li>\n</ul>\n<p><strong>Boundary of Scope:</strong></p>\n<p>M-11 is a computational simulation benchmark and exploratory advisory prototype. It does not establish mine-site functional safety, nor does it claim active-mine physical twin synchronisation or autonomous braking actuation.</p>",
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "creators": [
+    {
+      "name": "Villa Valdiviezo, Favian Enrique",
+      "affiliation": "School of Systems Engineering, National University of Trujillo, Trujillo 13011, Peru",
+      "orcid": "0009-0001-3027-6433"
+    },
+    {
+      "name": "Hermenegildo Pacheco, Marck Alessandro",
+      "affiliation": "School of Systems Engineering, National University of Trujillo, Trujillo 13011, Peru",
+      "orcid": "0009-0001-9193-5420"
+    },
+    {
+      "name": "Santos Fernández, Juan Pedro",
+      "affiliation": "Department of Systems Engineering, National University of Trujillo, Trujillo 13011, Peru",
+      "orcid": "0000-0002-8882-9256"
+    },
+    {
+      "name": "Sánchez Ticona, Robert Jerry",
+      "affiliation": "Department of Systems Engineering, National University of Trujillo, Trujillo 13011, Peru",
+      "orcid": "0000-0001-9387-1945"
+    }
+  ],
+  "keywords": [
+    "underground mining",
+    "synthetic risk labels",
+    "collision warning",
+    "machine learning",
+    "cyber-physical systems",
+    "reproducibility",
+    "label circularity",
+    "time-to-collision",
+    "safety interlock",
+    "generative AI audit"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://doi.org/10.5281/zenodo.23747751",
+      "relation": "isIdenticalTo",
+      "resource_type": "dataset"
+    },
+    {
+      "identifier": "https://github.com/DrkonVilla/digital-twins-mines/tree/feature/statistical-reports-validation",
+      "relation": "isDocumentedBy",
+      "resource_type": "software"
+    }
+  ],
+  "communities": [
+    {
+      "identifier": "mining-engineering"
+    },
+    {
+      "identifier": "cyber-physical-systems"
+    }
+  ]
+}

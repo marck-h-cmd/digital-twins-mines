@@ -1,0 +1,72 @@
+{
+  "n_scenarios": 100,
+  "automatic": {
+    "protocol_compliance_rate": 0.69,
+    "protocol_compliance_wilson95": [
+      0.5937,
+      0.7722
+    ],
+    "hallucination_candidate_rate_UPPER_BOUND": 0.84,
+    "hallucination_candidate_wilson95": [
+      0.7558,
+      0.899
+    ]
+  },
+  "by_hazard": {
+    "colision_proximidad": {
+      "n": 13,
+      "fully_compliant": 10,
+      "candidates": 10
+    },
+    "zona_restringida": {
+      "n": 13,
+      "fully_compliant": 0,
+      "candidates": 9
+    },
+    "gas_co": {
+      "n": 13,
+      "fully_compliant": 13,
+      "candidates": 13
+    },
+    "fatiga_operador": {
+      "n": 13,
+      "fully_compliant": 13,
+      "candidates": 13
+    },
+    "polvo_visibilidad": {
+      "n": 12,
+      "fully_compliant": 12,
+      "candidates": 12
+    },
+    "falla_maquina": {
+      "n": 12,
+      "fully_compliant": 9,
+      "candidates": 9
+    },
+    "punto_ciego_retroceso": {
+      "n": 12,
+      "fully_compliant": 0,
+      "candidates": 6
+    },
+    "combinado_gas_fatiga": {
+      "n": 12,
+      "fully_compliant": 12,
+      "candidates": 12
+    }
+  },
+  "latency_ms": {
+    "mean": 1.25,
+    "p50": 1.2,
+    "p95": 1.45,
+    "max": 1.8
+  },
+  "meta": {
+    "seed": 42,
+    "framework": "DeterministicSafetyInterlock + GenAI Protocol Audit",
+    "standard_peru": "D.S. 024-2016-EM / D.S. 023-2017-EM",
+    "standard_osha": "OSHA 29 CFR 1926.651",
+    "lockout_count": 65,
+    "total_scenarios": 100,
+    "inter_rater_protocol": "Dual-blind independent human review (Cohen kappa)"
+  }
+}

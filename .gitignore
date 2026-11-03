@@ -59,13 +59,49 @@ backend/reports_output/
 .DS_Store
 Thumbs.db
 
-# Artículos, Entregables y Documentación Word
-Artículo/
+# Artículos, Entregables y Documentación Word / PDF
+*.docx
+*.doc
+*.pdf
+*.rar
 Articulo/
-Artículo_Corregido/
-Articulo_Corregido/
+Articulo_*/
+[Aa]rticulo*/
 Codigo_Fuente_Word/
 Entregables/
 generate_word_source_code.py
-*.docx
 
+# Volcados y borradores de texto temporales
+*_dump.txt
+article_full.txt
+obs_*.txt
+scratch_*
+
+# Auditorías internas e Informes de Revisión
+Auditoria_*/
+Auditoría_*/
+[Aa]uditoria*/
+Informe Revisión*/
+Informe Revision*/
+[Ii]nforme [Rr]evisi*/
+Informe_Auditoria*/
+Informe_Auditoría*/
+Informe Revisión 1/
+Informe_Auditoria_Diferencial_M11_da81d5f/
+Auditoria_Diferencial_M11_773554b/
+Auditoria_Independiente_M11_Repositorio_2026-10-26/
+
+# Correcciones y Revisiones de Pares
+[Cc]orreccion*/
+[Cc]orrecciones*/
+CORRECCIONES_*
+reports/AUDITORIA_*
+reports/CORRECCIONES_*
+reports/LIMITACIONES_*
+reports/MATRIZ_*
+
+# Guías y Notas internas
+[Gg]uia*/
+[Gg]uía*/
+GUIA_*
+instrucciones.md
